@@ -99,4 +99,6 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   MainTabs:          undefined;
   NavigationScreen:  { lot: ParkingLot };
+  Login:             undefined;
+  SignUp:            undefined;
 };

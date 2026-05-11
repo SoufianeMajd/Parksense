@@ -19,19 +19,96 @@ Below is the high-level architecture of how ParkSense communicates with the hard
 graph TD
     A[ESP32 / IoT Sensor] -- Publishes Occupancy Status (Libre/Occupee) --> B(HiveMQ MQTT Broker)
     B -- Pushes Real-Time Updates --> C[React Native App]
+    C -- Reads/Writes Data --> E[(Supabase PostgreSQL)]
+    C -- Auth & Notifs --> E
     C -- Renders Map & UI --> D((User))
     
     style A fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
     style B fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
     style C fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style E fill:#4A154B,stroke:#3B0B3C,stroke-width:2px,color:#fff
 ```
+
+## 📊 Diagrammes de Conception
+
+<details>
+<summary><b>1. Diagramme de Cas d'Utilisation</b></summary>
+
+```mermaid
+flowchart LR
+    User([Utilisateur Mobile])
+    Sensor([Capteur ESP32])
+    Admin([Administrateur])
+    
+    subgraph ParkSense [Application ParkSense]
+        Auth(S'authentifier / S'inscrire)
+        Map(Consulter la carte des parkings)
+        Availability(Voir la disponibilité en temps réel)
+        Reserve(Réserver une place de parking)
+        Notif(Recevoir des alertes)
+        UpdateState(Mettre à jour l'état d'occupation)
+    end
+    
+    User --> Auth
+    User --> Map
+    User --> Availability
+    User --> Reserve
+    User --> Notif
+    Reserve -.->|<< include >>| Auth
+    Sensor --> UpdateState
+    UpdateState -.->|Met à jour| Availability
+```
+</details>
+
+<details>
+<summary><b>2. Diagramme de Classes</b></summary>
+
+```mermaid
+classDiagram
+    class User { +String id, +String email, +login() }
+    class ParkingLot { +String id, +String name, +Int capacity }
+    class ParkingSpot { +String id, +String status, +updateStatus() }
+    class Sensor { +String macAddress, +publishOccupancy() }
+    class Reservation { +String id, +DateTime startTime, +DateTime endTime }
+    class Notification { +String id, +String message }
+    class MQTTService { +connect(), +subscribe() }
+
+    User "1" -- "*" Reservation : effectue
+    User "1" -- "*" Notification : reçoit
+    ParkingLot "1" *-- "*" ParkingSpot : contient
+    Sensor "1" -- "1" ParkingSpot : surveille
+    Reservation "1" -- "1" ParkingSpot : concerne
+```
+</details>
+
+<details>
+<summary><b>3. Modèle de Base de Données (ERD)</b></summary>
+
+```mermaid
+erDiagram
+    USERS ||--o{ RESERVATIONS : "effectue"
+    USERS ||--o{ NOTIFICATIONS : "reçoit"
+    PARKING_LOTS ||--o{ PARKING_SPOTS : "contient"
+    PARKING_SPOTS |o--o| SENSORS : "surveillée par"
+    PARKING_SPOTS ||--o{ RESERVATIONS : "concerne"
+
+    USERS { uuid id PK, string email, string role }
+    PARKING_LOTS { uuid id PK, string name, int total_capacity }
+    PARKING_SPOTS { uuid id PK, uuid lot_id FK, string status }
+    SENSORS { uuid id PK, string mac_address, string status }
+    RESERVATIONS { uuid id PK, uuid user_id FK, string status }
+    NOTIFICATIONS { uuid id PK, string message }
+```
+</details>
 
 ## 🚀 Features
 - **Real-Time Visualization**: Instantly see if a parking spot is free or full.
 - **Interactive Map**: Navigate to available spots with a dynamic map view.
 - **IoT Integration**: Direct communication with ESP32 sensors using MQTT.
+- **Authentication**: Secure user login and registration powered by Supabase.
+- **Database Storage**: Robust PostgreSQL backend for users, lots, and reservations.
+- **Push Notifications**: Live alerts sent directly to the device.
 - **Custom Map Markers**: High-performance, pixel-perfect map pins.
-- **Favorites & Navigation**: Save frequent spots and get directions quickly.
 
 ## 🛠️ Setup Instructions
 
@@ -53,6 +130,8 @@ graph TD
 
 ## 💻 Technologies Used
 - **Frontend**: React Native, Expo, React Navigation
+- **Backend & Database**: Supabase (PostgreSQL), Auth, Row Level Security
+- **Notifications**: Expo Notifications API
 - **Maps**: react-native-maps
 - **IoT Protocol**: MQTT (Paho client)
 - **Styling**: Context-based custom theming
@@ -61,7 +140,7 @@ graph TD
 
 - [ ] Add real application screenshots to the README.
 - [ ] Connect more ESP32 sensors and map them to physical spots.
-- [ ] Implement user authentication (Sign In / Sign Up).
-- [ ] Add push notifications for when a spot becomes available.
+- [x] Implement user authentication (Sign In / Sign Up).
+- [x] Add push notifications for when a spot becomes available.
 - [ ] Setup CI/CD pipeline for automated testing and deployment.
 - [ ] Refine the UI/UX for the spot reservation feature.
