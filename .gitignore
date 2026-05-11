@@ -18,3 +18,4 @@ veda
 *.sw?
 .DS_Store
 .env
+screen/
