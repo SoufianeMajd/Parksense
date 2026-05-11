@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulateur ESP32 ParkSense</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    .status {
+      margin: 1rem 0;
+      padding: 0.5rem;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .status.disconnected {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .status.connected {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    button {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-libre {
+      background: #4caf50;
+      color: white;
+    }
+    .btn-occupee {
+      background: #f44336;
+      color: white;
+    }
+    .log-container {
+      margin-top: 1.5rem;
+      text-align: left;
+      background: #eee;
+      padding: 1rem;
+      border-radius: 8px;
+      height: 150px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      color: #555;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Simulateur ESP32</h1>
+    <p>Topic : <strong>parkwize/place1</strong></p>
+    
+    <div id="connection-status" class="status disconnected">Déconnecté</div>
+
+    <div class="button-group">
+      <button id="btn-libre" class="btn-libre" disabled onclick="publishState('Libre')">Libérer la place</button>
+      <button id="btn-occupee" class="btn-occupee" disabled onclick="publishState('Occupee')">Occuper la place</button>
+    </div>
+
+    <div class="log-container" id="log">
+      <div>[Système] Prêt à se connecter...</div>
+    </div>
+  </div>
+
+  <script>
+    const broker = "broker.hivemq.com";
+    const port = 8000;
+    const topic = "parkwize/place1";
+    
+    // Générer un ID client aléatoire
+    const clientId = "Simulateur_" + Math.random().toString(16).substr(2, 8);
+    const client = new Paho.MQTT.Client(broker, port, "/mqtt", clientId);
+
+    const logEl = document.getElementById("log");
+    const statusEl = document.getElementById("connection-status");
+    const btnLibre = document.getElementById("btn-libre");
+    const btnOccupee = document.getElementById("btn-occupee");
+
+    function addLog(message) {
+      const div = document.createElement('div');
+      const time = new Date().toLocaleTimeString();
+      div.innerText = `[${time}] ${message}`;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    client.onConnectionLost = function(responseObject) {
+      statusEl.className = "status disconnected";
+      statusEl.innerText = "Déconnecté";
+      btnLibre.disabled = true;
+      btnOccupee.disabled = true;
+      if (responseObject.errorCode !== 0) {
+        addLog("Erreur de connexion : " + responseObject.errorMessage);
+      } else {
+        addLog("Déconnecté.");
+      }
+    };
+
+    client.onMessageArrived = function(message) {
+      addLog("Message reçu : " + message.payloadString + " sur " + message.destinationName);
+    };
+
+    addLog("Connexion à " + broker + "...");
+
+    client.connect({
+      onSuccess: function() {
+        statusEl.className = "status connected";
+        statusEl.innerText = "Connecté au broker MQTT";
+        btnLibre.disabled = false;
+        btnOccupee.disabled = false;
+        addLog("Connecté !");
+        
+        // Optionnel: s'abonner pour voir ses propres messages
+        client.subscribe(topic);
+      },
+      onFailure: function(err) {
+        addLog("Échec de connexion : " + err.errorMessage);
+      },
+      useSSL: false,
+      timeout: 3
+    });
+
+    function publishState(state) {
+      if (client.isConnected()) {
+        const message = new Paho.MQTT.Message(state);
+        message.destinationName = topic;
+        client.send(message);
+        addLog("Envoyé -> " + state);
+      } else {
+        addLog("Erreur : Non connecté au broker.");
+      }
+    }
+  </script>
+</body>
+</html>

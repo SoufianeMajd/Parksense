@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "ParkSense",
+    "slug": "parksense",
+    "version": "1.0.0",
+    "newArchEnabled": false,
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ParkSense uses your location to find the nearest available parking and guide you there."
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    }
+  }
+}
