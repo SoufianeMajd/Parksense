@@ -29,8 +29,13 @@ export const ProfileScreen: React.FC = () => {
   const { mode, toggle }                         = useTheme();
   const isDark                                   = mode === 'dark';
   const navigation                               = useNavigation<Nav>();
-  const { user, favouriteLots, startNavigation } = useApp();
-  const { signOut }                              = useAuth();
+  const { user: mockUser, favouriteLots, startNavigation } = useApp();
+  const { signOut, user: authUser, userRole }            = useAuth();
+
+  const realName = authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || 'User';
+  const realEmail = authUser?.email || '';
+  const realInitials = realName.substring(0, 2).toUpperCase();
+  const displayRole = userRole === 'Admin' ? 'Admin' : 'Gold';
 
   // Navigate to the NavigationScreen for a favourite lot
   const handleViewMap = (lot: typeof favouriteLots[0]) => {
@@ -59,13 +64,13 @@ export const ProfileScreen: React.FC = () => {
         <View style={s.header}>
           <View style={s.avatarRow}>
             <View style={s.avatar}>
-              <Text style={s.avatarTxt}>{user.initials}</Text>
+              <Text style={s.avatarTxt}>{realInitials}</Text>
             </View>
             <View>
-              <Text style={s.name}>{user.name}</Text>
-              <Text style={s.email}>{user.email}</Text>
+              <Text style={s.name}>{realName}</Text>
+              <Text style={s.email}>{realEmail}</Text>
               <View style={s.tierBadge}>
-                <Text style={s.tierTxt}>⭐ {user.tier} Member</Text>
+                <Text style={s.tierTxt}>⭐ {displayRole} Member</Text>
               </View>
             </View>
           </View>
@@ -74,9 +79,9 @@ export const ProfileScreen: React.FC = () => {
         {/* ── Stats strip ─────────────────────────────────────── */}
         <View style={s.statsStrip}>
           {[
-            { val: String(user.totalSessions), label: 'Sessions',    color: Colors.accent },
-            { val: `${user.totalSpent} DH`,     label: 'Total spent', color: Colors.green  },
-            { val: `${user.avgSessionHours}h`,  label: 'Avg/session', color: Colors.amber  },
+            { val: String(mockUser.totalSessions), label: 'Sessions',    color: Colors.accent },
+            { val: `${mockUser.totalSpent} DH`,     label: 'Total spent', color: Colors.green  },
+            { val: `${mockUser.avgSessionHours}h`,  label: 'Avg/session', color: Colors.amber  },
           ].map((item, i) => (
             <View key={i} style={s.statItem}>
               <Text style={[s.statVal, { color: item.color }]}>{item.val}</Text>
@@ -91,9 +96,9 @@ export const ProfileScreen: React.FC = () => {
           <SectionHeader title="Payment" />
           <View style={s.payCard}>
             <View>
-              <Text style={s.cardType}>{user.paymentCard.type}</Text>
+              <Text style={s.cardType}>{mockUser.paymentCard.type}</Text>
               <Text style={s.cardNum}>
-                •••• •••• •••• {user.paymentCard.last4}
+                •••• •••• •••• {mockUser.paymentCard.last4}
               </Text>
             </View>
             <Text style={s.cardLogo}>💳</Text>
@@ -115,7 +120,7 @@ export const ProfileScreen: React.FC = () => {
 
           {/* ── Saved locations ──────────────────────────────── */}
           <SectionHeader title="Saved Locations" />
-          {user.savedLocations.map(loc => (
+          {mockUser.savedLocations.map(loc => (
             <View key={loc.id} style={s.locCard}>
               <Text style={s.locIcon}>{loc.icon}</Text>
               <View style={s.locText}>

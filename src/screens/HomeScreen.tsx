@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontSize, Radius, Spacing, ThemeColors } from '../constants/theme';
 import { useColors, useThemedStyles } from '../context/ThemeContext';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { distanceKm, openDirections } from '../services/geo';
 import { ParkingCard }   from '../components/ParkingCard';
@@ -18,8 +19,12 @@ import { ParkingLot } from '../types';
 export const HomeScreen: React.FC = () => {
   const Colors                  = useColors();
   const s                       = useThemedStyles(makeStyles);
-  const { user, lots, isLoading, refreshLots } = useApp();
+  const { lots, isLoading, refreshLots } = useApp();
+  const { user: authUser }      = useAuth();
   const { coords, status, isReal, refresh: refreshLocation } = useUserLocation();
+
+  const realName = authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || 'User';
+  const realInitials = realName.substring(0, 2).toUpperCase();
 
   const [search, setSearch]               = useState('');
   const [showResults, setShowResults]     = useState(false);
@@ -89,13 +94,13 @@ export const HomeScreen: React.FC = () => {
         <View style={s.header}>
           <View>
             <Text style={s.greeting}>Good morning</Text>
-            <Text style={s.name}>{user.name} 👋</Text>
+            <Text style={s.name}>{realName} 👋</Text>
             <TouchableOpacity onPress={refreshLocation}>
               <Text style={s.locTag}>{locationBadge}</Text>
             </TouchableOpacity>
           </View>
           <View style={s.avatar}>
-            <Text style={s.avatarTxt}>{user.initials}</Text>
+            <Text style={s.avatarTxt}>{realInitials}</Text>
           </View>
         </View>
 

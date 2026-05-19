@@ -24,7 +24,12 @@ export const SignUpScreen = ({ navigation }: any) => {
 
     if (error) {
       Alert.alert('Erreur', error.message);
-    } else {
+    } else if (data.user) {
+      // Auto-create profile
+      await supabase.from('profiles').upsert([
+        { id: data.user.id, email: email, name: name, role: 'User' }
+      ]);
+
       if (data.session) {
         // Logged in directly
       } else {

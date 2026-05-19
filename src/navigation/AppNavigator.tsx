@@ -50,6 +50,7 @@ const makeTabStyles = (Colors: ThemeColors) => StyleSheet.create({
 // Bottom tab navigator
 const Tabs = () => {
   const Colors = useColors();
+  const { userRole } = useAuth();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -78,7 +79,9 @@ const Tabs = () => {
       <Tab.Screen name="Home"    component={HomeScreen}    />
       <Tab.Screen name="Map"     component={MapScreen}     />
       <Tab.Screen name="FindCar" component={FindCarScreen} />
-      <Tab.Screen name="Admin"   component={AdminScreen}   />
+      {userRole === 'Admin' && (
+        <Tab.Screen name="Admin"   component={AdminScreen}   />
+      )}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
