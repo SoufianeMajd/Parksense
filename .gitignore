@@ -19,3 +19,7 @@ veda
 .DS_Store
 .env
 screen/
+
+# Sensitive SQL admin scripts (run locally only)
+make_admin.sql
+delete_admin.sql

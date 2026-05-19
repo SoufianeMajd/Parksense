@@ -87,17 +87,40 @@ classDiagram
 ```mermaid
 erDiagram
     USERS ||--o{ RESERVATIONS : "effectue"
-    USERS ||--o{ NOTIFICATIONS : "reçoit"
+    USERS ||--o{ NOTIFICATIONS : "recoit"
     PARKING_LOTS ||--o{ PARKING_SPOTS : "contient"
-    PARKING_SPOTS |o--o| SENSORS : "surveillée par"
+    PARKING_SPOTS |o--o| SENSORS : "surveillee par"
     PARKING_SPOTS ||--o{ RESERVATIONS : "concerne"
 
-    USERS { uuid id PK, string email, string role }
-    PARKING_LOTS { uuid id PK, string name, int total_capacity }
-    PARKING_SPOTS { uuid id PK, uuid lot_id FK, string status }
-    SENSORS { uuid id PK, string mac_address, string status }
-    RESERVATIONS { uuid id PK, uuid user_id FK, string status }
-    NOTIFICATIONS { uuid id PK, string message }
+    USERS {
+        uuid id PK
+        string email
+        string role
+    }
+    PARKING_LOTS {
+        uuid id PK
+        string name
+        int total_capacity
+    }
+    PARKING_SPOTS {
+        uuid id PK
+        uuid lot_id FK
+        string status
+    }
+    SENSORS {
+        uuid id PK
+        string mac_address
+        string status
+    }
+    RESERVATIONS {
+        uuid id PK
+        uuid user_id FK
+        string status
+    }
+    NOTIFICATIONS {
+        uuid id PK
+        string message
+    }
 ```
 </details>
 
@@ -135,9 +158,15 @@ To properly initialize your Supabase backend, you must run the provided SQL scri
 1. **`supabase_schema.sql`**: Creates the necessary tables (`parking_lots`, `parking_spots`, `sensors`, `profiles`, `reservations`, `notifications`) and sets up Row Level Security (RLS) policies.
 2. **`supabase_seed.sql`**: Populates the database with initial dummy data (parking lots, spots, etc.).
 3. **Admin Account Setup**: 
-   - Sign up normally in the mobile app with the email `admin@parksense.com` and password `admin123`.
-   - Run the **`make_admin.sql`** script in the Supabase SQL Editor to promote this account to an Administrator role.
-   - *(Optional)* If you need to reset the admin account, you can use the `delete_admin.sql` script.
+   - Sign up normally in the mobile app with the email `admin@parksense.com` and a secure password.
+   - In the Supabase SQL Editor, run the following query to promote this account to an Administrator role:
+     ```sql
+     INSERT INTO public.profiles (id, email, name, role)
+     SELECT id, email, raw_user_meta_data->>'name', 'Admin'
+     FROM auth.users
+     WHERE email = 'admin@parksense.com'
+     ON CONFLICT (id) DO UPDATE SET role = 'Admin';
+     ```
 
 ## 💻 Technologies Used
 - **Frontend**: React Native, Expo, React Navigation
