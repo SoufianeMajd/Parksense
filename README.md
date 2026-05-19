@@ -124,6 +124,17 @@ erDiagram
 ```
 </details>
 
+## 🔌 ESP32 Simulator
+
+The repository includes a web-based ESP32 simulator to test real-time parking space updates over MQTT.
+It allows you to toggle the state (`Libre` / `Occupee`) of the 4 MQTT-controlled spots (A1–A4) dynamically, while A5 and A6 remain occupied by default.
+
+To run the simulator, simply open `simulator/index.html` in your browser.
+
+<p align="center">
+  <img src="screen/simulator.png" width="80%" alt="ESP32 Simulator Dashboard" />
+</p>
+
 ## 🚀 Features
 - **Real-Time Visualization**: Instantly see if a parking spot is free or full.
 - **Interactive Map**: Navigate to available spots with a dynamic map view.
@@ -188,10 +199,12 @@ To properly initialize your Supabase backend, you must run the provided SQL scri
 - [x] Manual sign-out redirects correctly to the Login screen.
 - [x] Auto-create user profile on signup.
 - [x] Database schema (ERD) documented in README.
+- [x] Connect 4 ESP32 spots (A1–A4) to physical/simulated MQTT topics.
+- [x] Create web-based 6-spot ESP32 simulator with persistent retained messages.
+- [x] Redesign ESP32 parking details UI to match Twin Center Parking.
 
 ### 🔲 Remaining
-- [ ] Add real application screenshots to the README.
-- [ ] Connect more ESP32 sensors and map them to physical spots.
+- [ ] Add real mobile application screenshots to the README.
 - [ ] Setup CI/CD pipeline for automated testing and deployment.
 - [ ] Refine the UI/UX for the spot reservation feature.
 - [ ] Replace mock parking statistics in Profile screen with real data from Supabase.

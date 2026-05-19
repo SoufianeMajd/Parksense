@@ -1,6 +1,6 @@
 import React, {
   createContext, useContext, useState,
-  useEffect, useCallback, ReactNode,
+  useEffect, useCallback, useRef, ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -49,6 +49,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [navSession, setNavSession] = useState<NavigationSession | null>(null);
   const [parkedCar, setParkedCar] = useState<ParkedCar | null>(null);
   const [user] = useState<UserProfile>(MOCK_USER);
+  // Track status for each of the 4 ESP32-controlled spots
   const [espSpotStatus, setEspSpotStatus] = useState<'Libre' | 'Occupee' | 'Loading'>('Loading');
 
   // Initial fetch
@@ -81,40 +82,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(id);
   }, [lots.length]);
 
-  // Sync espSpotStatus with the esp32-lot spots (specifically spot A1)
-  useEffect(() => {
-    if (espSpotStatus === 'Loading') return;
+  // Update the esp32-lot when any spot status changes via MQTT
+  const updateEsp32Spot = useCallback((spotId: string, newStatus: 'free' | 'occupied') => {
     setLots(prev => prev.map(lot => {
-      if (lot.id === 'esp32-lot') {
-        const isFree = espSpotStatus === 'Libre';
-        const newStatus: 'free' | 'occupied' = isFree ? 'free' : 'occupied';
-        const updatedFloors = lot.floors.map(floor => ({
-          ...floor,
-          spots: floor.spots.map(spot => {
-            if (spot.id === 'A1') {
-              return { ...spot, status: newStatus };
-            }
-            return spot;
-          })
-        }));
-
-        return {
-          ...lot,
-          floors: updatedFloors,
-          freeSpots: isFree ? 1 : 0,
-          // 'high' = green (available), 'low' = red (almost full / full)
-          availabilityLevel: isFree ? 'high' : 'low',
-        };
-      }
-      return lot;
+      if (lot.id !== 'esp32-lot') return lot;
+      const updatedFloors = lot.floors.map(floor => ({
+        ...floor,
+        spots: floor.spots.map(spot =>
+          spot.id === spotId ? { ...spot, status: newStatus } : spot
+        ),
+      }));
+      const allSpots = updatedFloors.flatMap(f => f.spots);
+      const newFreeCount = allSpots.filter(s => s.status === 'free').length;
+      const ratio = newFreeCount / allSpots.length;
+      const level = newFreeCount === 0 ? 'full'
+                  : newFreeCount === 1  ? 'low'
+                  :                       'high';
+      return { ...lot, floors: updatedFloors, freeSpots: newFreeCount, availabilityLevel: level };
     }));
-  }, [espSpotStatus]);
+  }, []);
+
+  // Keep a ref so the MQTT handler always sees the latest function
+  const updateEsp32SpotRef = useRef(updateEsp32Spot);
+  useEffect(() => { updateEsp32SpotRef.current = updateEsp32Spot; }, [updateEsp32Spot]);
 
   // MQTT Connection for ESP32
   useEffect(() => {
-    // Unique client ID to prevent connection drops
     const clientId = `ParkSenseApp_${Math.random().toString(16).slice(2, 10)}`;
     const client = new Paho.Client('broker.hivemq.com', 8000, '/mqtt', clientId);
+
+    const SPOT_TOPICS: Record<string, string> = {
+      'parkwize/place1': 'A1',
+      'parkwize/place2': 'A2',
+      'parkwize/place3': 'A3',
+      'parkwize/place4': 'A4',
+    };
 
     client.onConnectionLost = (responseObject) => {
       if (responseObject.errorCode !== 0) {
@@ -124,15 +126,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     client.onMessageArrived = (message) => {
       const payload = message.payloadString.trim();
-      if (payload === 'Libre' || payload === 'Occupee') {
-        setEspSpotStatus(payload as 'Libre' | 'Occupee');
+      const spotId = SPOT_TOPICS[message.destinationName];
+      if (spotId && (payload === 'Libre' || payload === 'Occupee')) {
+        updateEsp32SpotRef.current(spotId, payload === 'Libre' ? 'free' : 'occupied');
+        if (spotId === 'A1') setEspSpotStatus(payload as 'Libre' | 'Occupee');
       }
     };
 
     client.connect({
       onSuccess: () => {
         console.log('MQTT Connected to HiveMQ!');
-        client.subscribe('parkwize/place1');
+        Object.keys(SPOT_TOPICS).forEach(t => client.subscribe(t));
       },
       onFailure: (err) => {
         console.log('MQTT Connection Failed:', err.errorMessage);
@@ -143,14 +147,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       try {
-        if (client.isConnected()) {
-          client.disconnect();
-        }
-      } catch (e) {
-        // Ignore disconnect errors
-      }
+        if (client.isConnected()) client.disconnect();
+      } catch (e) { /* ignore */ }
     };
-  }, []);
+  }, []); // runs once — uses ref to always access latest update function
 
   // Favourites
   const toggleFavourite = useCallback((id: string) =>

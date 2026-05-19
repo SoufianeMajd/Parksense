@@ -3,7 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 
-const SESSION_TIMEOUT_MS = 10 * 20 * 1000; // 10 * 20 secondes (POUR LE TEST)
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 * 60 secondes (POUR LE TEST)
 const WARNING_TIMEOUT_SEC = 20;  // 20 secondes (POUR LE TEST)
 
 interface AuthContextType {
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('role')
         .eq('id', userId)
         .single();
-      
+
       if (error) throw error;
       if (data) {
         setUserRole(data.role);
@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setLoading(false);
     };
-    
+
     initSession();
 
     // Écouter les changements d'état (login, logout)
