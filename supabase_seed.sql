@@ -33,3 +33,26 @@ INSERT INTO public.profiles (id, email, name, role)
 SELECT id, email, 'Admin Test', 'Admin'
 FROM auth.users 
 WHERE email = 'admin@parksense.com';
+
+-- Insertion dans auth.identities pour permettre la connexion
+INSERT INTO auth.identities (
+    id,
+    user_id,
+    provider_id,
+    identity_data,
+    provider,
+    last_sign_in_at,
+    created_at,
+    updated_at
+)
+SELECT 
+    uuid_generate_v4(),
+    id,
+    id::text,
+    format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+    'email',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+FROM auth.users
+WHERE email = 'admin@parksense.com';

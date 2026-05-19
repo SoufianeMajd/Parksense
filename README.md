@@ -128,6 +128,17 @@ erDiagram
 4. **Run the App:** 
    Use the Expo Go app on your iOS/Android device, or run in a local simulator.
 
+## 🗄️ Database Setup (Supabase)
+
+To properly initialize your Supabase backend, you must run the provided SQL scripts in your Supabase SQL Editor in the following order:
+
+1. **`supabase_schema.sql`**: Creates the necessary tables (`parking_lots`, `parking_spots`, `sensors`, `profiles`, `reservations`, `notifications`) and sets up Row Level Security (RLS) policies.
+2. **`supabase_seed.sql`**: Populates the database with initial dummy data (parking lots, spots, etc.).
+3. **Admin Account Setup**: 
+   - Sign up normally in the mobile app with the email `admin@parksense.com` and password `admin123`.
+   - Run the **`make_admin.sql`** script in the Supabase SQL Editor to promote this account to an Administrator role.
+   - *(Optional)* If you need to reset the admin account, you can use the `delete_admin.sql` script.
+
 ## 💻 Technologies Used
 - **Frontend**: React Native, Expo, React Navigation
 - **Backend & Database**: Supabase (PostgreSQL), Auth, Row Level Security
