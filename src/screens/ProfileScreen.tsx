@@ -11,6 +11,7 @@ import { FontSize, Radius, Spacing, ThemeColors } from '../constants/theme';
 import { useColors, useTheme, useThemedStyles } from '../context/ThemeContext';
 import { RootStackParamList } from '../types';
 import { useApp }          from '../context/AppContext';
+import { useAuth }         from '../context/AuthContext';
 import { FavouriteCard }   from '../components/FavouriteCard';
 import { SectionHeader }   from '../components/SectionHeader';
 import { buildNavSession } from '../services/mockData';
@@ -29,6 +30,7 @@ export const ProfileScreen: React.FC = () => {
   const isDark                                   = mode === 'dark';
   const navigation                               = useNavigation<Nav>();
   const { user, favouriteLots, startNavigation } = useApp();
+  const { signOut }                              = useAuth();
 
   // Navigate to the NavigationScreen for a favourite lot
   const handleViewMap = (lot: typeof favouriteLots[0]) => {
@@ -45,7 +47,7 @@ export const ProfileScreen: React.FC = () => {
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign out', style: 'destructive', onPress: () => {} },
+        { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
       ],
     );
 

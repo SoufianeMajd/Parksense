@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
+import { Alert } from 'react-native';
+
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const WARNING_TIMEOUT_MS = 1 * 60 * 1000;  // 1 minute
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +24,63 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearTimers = useCallback(() => {
+    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    clearTimers();
+    await supabase.auth.signOut();
+  }, [clearTimers]);
+
+  const startSessionTimer = useCallback(() => {
+    clearTimers();
+    // Start the 15-minute timer
+    sessionTimerRef.current = setTimeout(() => {
+      // 15 minutes passed, show warning alert
+      Alert.alert(
+        'Session Expirée',
+        'Votre session expire. Voulez-vous rester connecté ?',
+        [
+          { 
+            text: 'Se déconnecter', 
+            style: 'cancel', 
+            onPress: () => signOut() 
+          },
+          { 
+            text: 'Continuer', 
+            onPress: () => {
+              // User clicked continue, restart the session timer
+              startSessionTimer();
+            } 
+          }
+        ],
+        { cancelable: false }
+      );
+
+      // Start the 1-minute auto-logout timer
+      warningTimerRef.current = setTimeout(() => {
+        // If no response after 1 minute, log out automatically
+        signOut();
+      }, WARNING_TIMEOUT_MS);
+
+    }, SESSION_TIMEOUT_MS);
+  }, [clearTimers, signOut]);
+
+  // Manage timers when session changes
+  useEffect(() => {
+    if (session) {
+      startSessionTimer();
+    } else {
+      clearTimers();
+    }
+    return () => clearTimers();
+  }, [session, startSessionTimer, clearTimers]);
 
   useEffect(() => {
     // Obtenir la session actuelle
@@ -40,10 +101,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       subscription.unsubscribe();
     };
   }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signOut }}>
