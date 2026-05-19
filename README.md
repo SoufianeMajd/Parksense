@@ -5,11 +5,8 @@ ParkSense is a smart parking management application built with React Native and 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="https://via.placeholder.com/250x500.png?text=Map+Screen" width="30%" />
-  <img src="https://via.placeholder.com/250x500.png?text=Parking+Details" width="30%" />
-  <img src="https://via.placeholder.com/250x500.png?text=Find+My+Car" width="30%" />
+  <img src="screen/app_screenshot.jpeg" width="35%" alt="ParkSense Mobile App Screen" />
 </p>
-*(Add actual screenshots of the application here)*
 
 ## 🏗️ Architecture Diagram
 
@@ -202,9 +199,9 @@ To properly initialize your Supabase backend, you must run the provided SQL scri
 - [x] Connect 4 ESP32 spots (A1–A4) to physical/simulated MQTT topics.
 - [x] Create web-based 6-spot ESP32 simulator with persistent retained messages.
 - [x] Redesign ESP32 parking details UI to match Twin Center Parking.
+- [x] Add real mobile application screenshots and simulator preview to the README.
 
 ### 🔲 Remaining
-- [ ] Add real mobile application screenshots to the README.
 - [ ] Setup CI/CD pipeline for automated testing and deployment.
 - [ ] Refine the UI/UX for the spot reservation feature.
 - [ ] Replace mock parking statistics in Profile screen with real data from Supabase.
