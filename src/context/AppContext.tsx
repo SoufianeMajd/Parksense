@@ -16,45 +16,45 @@ const PARKED_KEY = 'parksense.parkedCar';
 interface ParkCarInput {
   carName?: string;
   lotName?: string;
-  floor?:   string;
+  floor?: string;
   spotLabel?: string;
 }
 
 // ─── Shape ───────────────────────────────────────────────────────────────────
 interface AppContextValue {
-  lots:            ParkingLot[];
-  isLoading:       boolean;
-  refreshLots:     () => void;
-  favouriteIds:    string[];
+  lots: ParkingLot[];
+  isLoading: boolean;
+  refreshLots: () => void;
+  favouriteIds: string[];
   toggleFavourite: (id: string) => void;
-  isFavourite:     (id: string) => boolean;
-  favouriteLots:   ParkingLot[];
-  navSession:      NavigationSession | null;
+  isFavourite: (id: string) => boolean;
+  favouriteLots: ParkingLot[];
+  navSession: NavigationSession | null;
   startNavigation: (s: NavigationSession) => void;
   clearNavigation: () => void;
-  parkedCar:       ParkedCar | null;
-  parkCar:         (coords: Coordinates, info?: ParkCarInput) => void;
-  unparkCar:       () => void;
-  user:            UserProfile;
-  espSpotStatus:   'Libre' | 'Occupee' | 'Loading';
+  parkedCar: ParkedCar | null;
+  parkCar: (coords: Coordinates, info?: ParkCarInput) => void;
+  unparkCar: () => void;
+  user: UserProfile;
+  espSpotStatus: 'Libre' | 'Occupee' | 'Loading';
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [lots,          setLots]         = useState<ParkingLot[]>([]);
-  const [isLoading,     setIsLoading]    = useState(true);
-  const [favouriteIds,  setFavouriteIds] = useState<string[]>(DEFAULT_FAVOURITE_IDS);
-  const [navSession,    setNavSession]   = useState<NavigationSession | null>(null);
-  const [parkedCar,     setParkedCar]    = useState<ParkedCar | null>(null);
-  const [user]                           = useState<UserProfile>(MOCK_USER);
+  const [lots, setLots] = useState<ParkingLot[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [favouriteIds, setFavouriteIds] = useState<string[]>(DEFAULT_FAVOURITE_IDS);
+  const [navSession, setNavSession] = useState<NavigationSession | null>(null);
+  const [parkedCar, setParkedCar] = useState<ParkedCar | null>(null);
+  const [user] = useState<UserProfile>(MOCK_USER);
   const [espSpotStatus, setEspSpotStatus] = useState<'Libre' | 'Occupee' | 'Loading'>('Loading');
 
   // Initial fetch
   const loadLots = useCallback(async () => {
     setIsLoading(true);
-    try   { setLots(await fetchParkingLots()); }
+    try { setLots(await fetchParkingLots()); }
     finally { setIsLoading(false); }
   }, []);
 
@@ -67,7 +67,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const obj = JSON.parse(json);
         setParkedCar({ ...obj, parkedAt: new Date(obj.parkedAt) });
-      } catch {/* corrupted — ignore */}
+      } catch {/* corrupted — ignore */ }
     });
   }, []);
 
@@ -97,7 +97,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             return spot;
           })
         }));
-        
+
         return {
           ...lot,
           floors: updatedFloors,
@@ -155,9 +155,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Favourites
   const toggleFavourite = useCallback((id: string) =>
     setFavouriteIds(p => p.includes(id) ? p.filter(f => f !== id) : [...p, id])
-  , []);
-  const isFavourite    = useCallback((id: string) => favouriteIds.includes(id), [favouriteIds]);
-  const favouriteLots  = lots.filter(l => favouriteIds.includes(l.id));
+    , []);
+  const isFavourite = useCallback((id: string) => favouriteIds.includes(id), [favouriteIds]);
+  const favouriteLots = lots.filter(l => favouriteIds.includes(l.id));
 
   // Navigation session
   const startNavigation = useCallback((s: NavigationSession) => setNavSession(s), []);
@@ -166,20 +166,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Park / unpark
   const parkCar = useCallback((coords: Coordinates, info: ParkCarInput = {}) => {
     const car: ParkedCar = {
-      carName:  info.carName  ?? 'My Car',
-      lotName:  info.lotName  ?? 'On-street parking',
-      floor:    info.floor,
+      carName: info.carName ?? 'My Car',
+      lotName: info.lotName ?? 'On-street parking',
+      floor: info.floor,
       spotLabel: info.spotLabel,
       parkedAt: new Date(),
       coordinates: coords,
     };
     setParkedCar(car);
-    AsyncStorage.setItem(PARKED_KEY, JSON.stringify(car)).catch(() => {});
+    AsyncStorage.setItem(PARKED_KEY, JSON.stringify(car)).catch(() => { });
   }, []);
 
   const unparkCar = useCallback(() => {
     setParkedCar(null);
-    AsyncStorage.removeItem(PARKED_KEY).catch(() => {});
+    AsyncStorage.removeItem(PARKED_KEY).catch(() => { });
   }, []);
 
   return (

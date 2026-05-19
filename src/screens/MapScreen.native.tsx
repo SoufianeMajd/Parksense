@@ -402,14 +402,12 @@ const ESP32DetailMode = ({
   s: any;
   Colors: ThemeColors;
 }) => {
-  const { espSpotStatus } = useApp();
-  const isFree = espSpotStatus === 'Libre';
-  const color = isFree ? Colors.green : Colors.red;
-  const statusText = isFree ? 'LIBRE' : 'COMPLET / OCCUPÉ';
-  const subText = isFree ? '1 place disponible sur 6.' : 'Toutes les 6 places sont occupées.';
+  const { isFavourite, toggleFavourite } = useApp();
+  const fav = isFavourite(lot.id);
 
   return (
-    <View style={s.espContainer}>
+    <View>
+      {/* Title row */}
       <View style={s.sheetTop}>
         <View style={{ flex: 1, marginRight: Spacing.sm }}>
           {onBack && (
@@ -422,38 +420,67 @@ const ESP32DetailMode = ({
             {lot.address}{distanceKmShown != null ? ` · ${distanceKmShown} km` : ''}
           </Text>
         </View>
+        <View style={s.sheetRight}>
+          <Text style={s.price}>{lot.pricePerHour} DH</Text>
+          <Text style={s.priceUnit}>/hr</Text>
+        </View>
       </View>
 
-      <View style={s.espCenter}>
-        <View style={[s.espGaugeWrap, { borderColor: color }]}>
-          <Text style={[s.espGaugeNumber, { color }]}>{isFree ? '1' : '0'}</Text>
-        </View>
-        <View style={[s.espStatusBadge, { backgroundColor: isFree ? Colors.greenDim : Colors.redDim }]}>
-          <Text style={[s.espStatusTxt, { color }]}>{statusText}</Text>
-        </View>
-        <Text style={s.espSubText}>{subText}</Text>
-      </View>
-
-      <View style={s.espFooter}>
-        <View style={s.espLiveBox}>
-          <Text style={s.espLivePulse}>🔵 Live data by ParkSense (ESP32)</Text>
-          <Text style={s.espTime}>Temps estimé: 3 min</Text>
-        </View>
-
+      {/* Info chips */}
+      <View style={s.chipsRow}>
         <TouchableOpacity
-          style={[s.actionBtn, { backgroundColor: isFree ? Colors.green : Colors.bg3, borderColor: isFree ? Colors.green : Colors.border2 }]}
-          activeOpacity={isFree ? 0.85 : 1}
-          disabled={!isFree}
+          style={[s.infoChip, { backgroundColor: fav ? Colors.redDim : Colors.bg3, borderWidth: 1, borderColor: fav ? Colors.red : Colors.border2 }]}
+          activeOpacity={0.75}
+          onPress={() => toggleFavourite(lot.id)}
+        >
+          <Text style={[s.infoChipTxt, { color: fav ? Colors.red : Colors.text2 }]}>
+            {fav ? '❤️ Favourite' : '🤍 Add to favourites'}
+          </Text>
+        </TouchableOpacity>
+        <View style={[s.infoChip, { backgroundColor: Colors.greenDim }]}>
+          <Text style={[s.infoChipTxt, { color: Colors.green }]}>
+            {lot.freeSpots} / {lot.totalSpots} free
+          </Text>
+        </View>
+        <View style={[s.infoChip, { backgroundColor: Colors.amberDim }]}>
+          <Text style={[s.infoChipTxt, { color: Colors.amber }]}>⭐ {lot.rating}</Text>
+        </View>
+        <View style={[s.infoChip, { backgroundColor: Colors.blueDim }]}>
+          <Text style={[s.infoChipTxt, { color: Colors.blue }]}>🔵 Live ESP32</Text>
+        </View>
+      </View>
+
+      {/* Real-time spot grid — all 6 spots */}
+      {lot.floors.length > 0 && (
+        <View style={s.gridWrap}>
+          <SpotGrid
+            floor={lot.floors[0]}
+            totalFree={lot.freeSpots}
+            totalSpots={lot.totalSpots}
+          />
+        </View>
+      )}
+
+      {/* Navigate button */}
+      <View style={s.actionsRow}>
+        <TouchableOpacity
+          style={[s.actionBtn, {
+            backgroundColor: lot.freeSpots > 0 ? Colors.green : Colors.bg3,
+            borderColor: lot.freeSpots > 0 ? Colors.green : Colors.border2,
+          }]}
+          activeOpacity={lot.freeSpots > 0 ? 0.85 : 1}
+          disabled={lot.freeSpots === 0}
           onPress={onNavigate}
         >
-          <Text style={[s.actionBtnTxt, { color: isFree ? '#fff' : Colors.text3 }]}>
-            {isFree ? '🧭 Naviguer vers le parking' : 'Parking Complet'}
+          <Text style={[s.actionBtnTxt, { color: lot.freeSpots > 0 ? '#fff' : Colors.text3 }]}>
+            {lot.freeSpots > 0 ? '🧭  Navigate' : 'Parking Full'}
           </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
+
 
 const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
   safe:        { flex: 1, backgroundColor: Colors.mapBg },
