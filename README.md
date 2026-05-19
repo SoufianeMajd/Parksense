@@ -178,9 +178,20 @@ To properly initialize your Supabase backend, you must run the provided SQL scri
 
 ## 📝 TODO
 
-- [ ] Add real application screenshots to the README.
-- [ ] Connect more ESP32 sensors and map them to physical spots.
+### ✅ Completed
 - [x] Implement user authentication (Sign In / Sign Up).
 - [x] Add push notifications for when a spot becomes available.
+- [x] Restrict Analytics screen to Admin users only.
+- [x] Display real user info (name, email, role) in Home and Profile screens.
+- [x] Secure sessions: auto-logout on app close (`persistSession: false`).
+- [x] 15-minute session timeout with a live countdown warning modal.
+- [x] Manual sign-out redirects correctly to the Login screen.
+- [x] Auto-create user profile on signup.
+- [x] Database schema (ERD) documented in README.
+
+### 🔲 Remaining
+- [ ] Add real application screenshots to the README.
+- [ ] Connect more ESP32 sensors and map them to physical spots.
 - [ ] Setup CI/CD pipeline for automated testing and deployment.
 - [ ] Refine the UI/UX for the spot reservation feature.
+- [ ] Replace mock parking statistics in Profile screen with real data from Supabase.
