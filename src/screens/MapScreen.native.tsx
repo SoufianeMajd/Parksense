@@ -34,7 +34,7 @@ const DARK_MAP_STYLE = [
 const NEAREST_COUNT = 5;
 
 const pinColor = (Colors: ThemeColors, level: string) =>
-  level === 'high' ? Colors.green : level === 'medium' ? Colors.amber : Colors.red;
+  level === 'high' ? Colors.green : (level === 'medium' || level === 'low') ? Colors.amber : Colors.red;
 
 interface RankedLot extends ParkingLot { computedKm: number; }
 
