@@ -5,7 +5,7 @@ ParkSense is a smart parking management application built with React Native and 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="screen/app_screenshot.jpeg" width="35%" alt="ParkSense Mobile App Screen" />
+  <img src="./screen/app_screenshot.jpeg" width="35%" alt="ParkSense Mobile App Screen" />
 </p>
 
 ## 🏗️ Architecture Diagram
@@ -129,7 +129,7 @@ It allows you to toggle the state (`Libre` / `Occupee`) of the 4 MQTT-controlled
 To run the simulator, simply open `simulator/index.html` in your browser.
 
 <p align="center">
-  <img src="screen/simulator.png" width="80%" alt="ESP32 Simulator Dashboard" />
+  <img src="./screen/simulator.png" width="80%" alt="ESP32 Simulator Dashboard" />
 </p>
 
 ## 🚀 Features
