@@ -209,8 +209,8 @@
   </div>
 
 <script>
-  const broker = "broker.hivemq.com";
-  const port   = 8000;
+  const broker = "broker.emqx.io";
+  const port   = 8084;
 
   const SPOTS = {
     A1: { topic: 'parkwize/place1', status: 'Libre' },
@@ -296,7 +296,7 @@
     onFailure: function(err) {
       addLog("Échec : " + err.errorMessage, 'msg-err');
     },
-    useSSL: false,
+    useSSL: true,
     timeout: 3
   });
 

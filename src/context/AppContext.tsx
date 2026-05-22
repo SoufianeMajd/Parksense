@@ -109,7 +109,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // MQTT Connection for ESP32
   useEffect(() => {
     const clientId = `ParkSenseApp_${Math.random().toString(16).slice(2, 10)}`;
-    const client = new Paho.Client('broker.hivemq.com', 8000, '/mqtt', clientId);
+    const client = new Paho.Client('broker.emqx.io', 8084, '/mqtt', clientId);
 
     const SPOT_TOPICS: Record<string, string> = {
       'parkwize/place1': 'A1',
@@ -141,7 +141,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       onFailure: (err) => {
         console.log('MQTT Connection Failed:', err.errorMessage);
       },
-      useSSL: false,
+      useSSL: true,
       timeout: 3,
     });
 

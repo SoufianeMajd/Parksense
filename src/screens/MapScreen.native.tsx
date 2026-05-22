@@ -48,13 +48,7 @@ export const MapScreen: React.FC = () => {
 
   const [searchPoint, setSearchPoint] = useState<Coordinates | null>(null);
   const [selected, setSelected]       = useState<ParkingLot | null>(null);
-  const [tracksView, setTracksView]   = useState(true);
-
-  // Stop tracking view changes after first render — fixes Android bitmap clipping bug
-  useEffect(() => {
-    const t = setTimeout(() => setTracksView(false), 500);
-    return () => clearTimeout(t);
-  }, []);
+  // Marker view tracking is now handled per-marker to allow easy tapping
 
   // Nearest N lots to the tapped point, with computed distance.
   const nearest = useMemo<RankedLot[]>(() => {
@@ -119,27 +113,16 @@ export const MapScreen: React.FC = () => {
 
             {/* Parking pins — when a tap-search is active, only the nearest N
                 are shown so the user focuses on the relevant ones. */}
-            {(searchPoint ? nearest : lots).map(lot => {
-              const pColor = pinColor(Colors, lot.availabilityLevel);
-              const isSelected = selected?.id === lot.id;
-              return (
-                <Marker
-                  key={lot.id}
-                  coordinate={lot.coordinates}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  tracksViewChanges={lot.id === 'esp32-lot' ? true : tracksView}
-                  onPress={() => onPinPress(lot)}
-                >
-                  {/* Flat marker — small borderRadius never clips on Android */}
-                  <View style={[s.markerOuter, { borderColor: pColor }, isSelected && s.markerSelected]}>
-                    <View style={[s.markerLeft, { backgroundColor: pColor }]}>
-                      <Text style={s.markerP}>P</Text>
-                    </View>
-                    <Text style={[s.markerCount, { color: pColor }]}>{lot.freeSpots}</Text>
-                  </View>
-                </Marker>
-              );
-            })}
+            {(searchPoint ? nearest : lots).map(lot => (
+              <ParkingMarker
+                key={`${lot.id}-${lot.freeSpots}`}
+                lot={lot}
+                selected={selected}
+                onPress={onPinPress}
+                Colors={Colors}
+                s={s}
+              />
+            ))}
           </MapView>
         ) : (
           <View style={s.mapFallback}>
@@ -217,6 +200,38 @@ export const MapScreen: React.FC = () => {
         </View>
       </View>
     </SafeAreaView>
+  );
+};
+
+// ───── Optimized Marker Component ─────────────────────────────
+const ParkingMarker = ({ lot, selected, onPress, Colors, s }: any) => {
+  const [tracks, setTracks] = useState(true);
+
+  // Briefly track view changes only when data changes to allow bitmap render,
+  // then stop tracking so the marker responds instantly to taps.
+  useEffect(() => {
+    setTracks(true);
+    const t = setTimeout(() => setTracks(false), 600);
+    return () => clearTimeout(t);
+  }, [lot.freeSpots, lot.availabilityLevel]);
+
+  const pColor = pinColor(Colors, lot.availabilityLevel);
+  const isSelected = selected?.id === lot.id;
+
+  return (
+    <Marker
+      coordinate={lot.coordinates}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracks}
+      onPress={() => onPress(lot)}
+    >
+      <View style={[s.markerOuter, { borderColor: pColor }, isSelected && s.markerSelected]}>
+        <View style={[s.markerLeft, { backgroundColor: pColor }]}>
+          <Text style={s.markerP}>P</Text>
+        </View>
+        <Text style={[s.markerCount, { color: pColor }]}>{lot.freeSpots}</Text>
+      </View>
+    </Marker>
   );
 };
 
