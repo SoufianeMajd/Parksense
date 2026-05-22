@@ -23,3 +23,6 @@ screen/
 # Sensitive SQL admin scripts (run locally only)
 make_admin.sql
 delete_admin.sql
+
+# Arduino secrets
+sketch_may2a/secrets.h
