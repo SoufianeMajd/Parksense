@@ -36,6 +36,12 @@ export const MapScreen: React.FC = () => {
   const { lots, startNavigation } = useApp();
   const [filter, setFilter]       = useState<MapFilter>('all');
   const [selected, setSelected]   = useState(lots[0] ?? null);
+  const [showSpots, setShowSpots] = useState(false);
+
+  const handleSelect = (lot: any) => {
+    setSelected(lot);
+    setShowSpots(false);
+  };
 
   const filtered =
     filter === 'available' ? lots.filter(l => l.freeSpots > 0)
@@ -59,7 +65,7 @@ export const MapScreen: React.FC = () => {
               <TouchableOpacity
                 key={lot.id}
                 style={[s.lotRow, selected?.id === lot.id && s.lotRowSelected]}
-                onPress={() => setSelected(lot)}
+                onPress={() => handleSelect(lot)}
               >
                 <View style={[s.dot, { backgroundColor: pinColor(Colors, lot.availabilityLevel) }]} />
                 <View style={{ flex: 1 }}>
@@ -122,11 +128,30 @@ export const MapScreen: React.FC = () => {
 
             {liveSelected.floors.length > 0 && (
               <View style={s.gridWrap}>
-                <SpotGrid
-                  floor={liveSelected.floors[0]}
-                  totalFree={liveSelected.freeSpots}
-                  totalSpots={liveSelected.totalSpots}
-                />
+                {!showSpots ? (
+                  <TouchableOpacity 
+                    style={[s.detailBtn, { marginTop: Spacing.sm }]}
+                    onPress={() => setShowSpots(true)}
+                  >
+                    <Text style={s.detailBtnTxt}>👁️ Voir les places</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <ScrollView style={{ maxHeight: 300 }}>
+                    <TouchableOpacity 
+                      style={{ marginBottom: Spacing.sm, alignItems: 'center' }}
+                      onPress={() => setShowSpots(false)}
+                    >
+                      <Text style={{ color: Colors.accent, fontSize: FontSize.sm, fontWeight: '500' }}>
+                        Masquer les places ↑
+                      </Text>
+                    </TouchableOpacity>
+                    <SpotGrid
+                      floor={liveSelected.floors[0]}
+                      totalFree={liveSelected.freeSpots}
+                      totalSpots={liveSelected.totalSpots}
+                    />
+                  </ScrollView>
+                )}
               </View>
             )}
 

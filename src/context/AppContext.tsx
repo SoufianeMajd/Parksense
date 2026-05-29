@@ -85,7 +85,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Update the esp32-lot when any spot status changes via MQTT
   const updateEsp32Spot = useCallback((spotId: string, newStatus: 'free' | 'occupied') => {
     setLots(prev => prev.map(lot => {
-      if (lot.id !== 'esp32-lot') return lot;
+      if (lot.id !== '11111111-1111-1111-1111-111111111111') return lot;
       const updatedFloors = lot.floors.map(floor => ({
         ...floor,
         spots: floor.spots.map(spot =>

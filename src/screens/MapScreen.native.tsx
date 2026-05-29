@@ -60,10 +60,8 @@ export const MapScreen: React.FC = () => {
   }, [lots, searchPoint]);
 
   const onMapPress = (e: any) => {
-    const c = e?.nativeEvent?.coordinate;
-    if (!c) return;
-    setSearchPoint({ latitude: c.latitude, longitude: c.longitude });
     setSelected(null);
+    setSearchPoint(null);
   };
 
   const onPinPress = (lot: ParkingLot) => setSelected(lot);
@@ -95,6 +93,8 @@ export const MapScreen: React.FC = () => {
               latitudeDelta: 0.03,
               longitudeDelta: 0.03,
             }}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
             onPress={onMapPress}
           >
             {/* User's live location */}
@@ -111,9 +111,8 @@ export const MapScreen: React.FC = () => {
               </Marker>
             )}
 
-            {/* Parking pins — when a tap-search is active, only the nearest N
-                are shown so the user focuses on the relevant ones. */}
-            {(searchPoint ? nearest : lots).map(lot => (
+            {/* Show all parking pins always */}
+            {lots.map(lot => (
               <ParkingMarker
                 key={`${lot.id}-${lot.freeSpots}`}
                 lot={lot}
@@ -157,47 +156,38 @@ export const MapScreen: React.FC = () => {
           <LiveChip />
         </View>
 
-        {/* ── Bottom sheet: 3 modes (idle / list / detail) ───── */}
-        <View style={s.sheet}>
-          <View style={s.handle} />
-
-          {selected ? (() => {
-            const liveSelected = lots.find(l => l.id === selected.id) || selected;
-            return liveSelected.id === 'esp32-lot' ? (
-              <ESP32DetailMode
+        {/* ── Bottom sheet: Detail mode ───── */}
+        {selected && (
+          <View style={s.sheet}>
+            <View style={s.handle} />
+            {(() => {
+              const liveSelected = lots.find(l => l.id === selected.id) || selected;
+              return liveSelected.id === '11111111-1111-1111-1111-111111111111' ? (
+                <ESP32DetailMode
+                  lot={liveSelected}
+                  distanceKmShown={selectedDistanceKm}
+                  onBack={undefined}
+                  onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
+                  s={s}
+                  Colors={Colors}
+                />
+              ) : (
+              <DetailMode
                 lot={liveSelected}
                 distanceKmShown={selectedDistanceKm}
-                onBack={searchPoint ? onBack : undefined}
+                onBack={undefined}
                 onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
+                onViewSimulation={() => {
+                  startNavigation(buildNavSession(liveSelected));
+                  navigation.navigate('NavigationScreen', { lot: liveSelected });
+                }}
                 s={s}
                 Colors={Colors}
               />
-            ) : (
-            <DetailMode
-              lot={liveSelected}
-              distanceKmShown={selectedDistanceKm}
-              onBack={searchPoint ? onBack : undefined}
-              onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
-              onViewSimulation={() => {
-                startNavigation(buildNavSession(liveSelected));
-                navigation.navigate('NavigationScreen', { lot: liveSelected });
-              }}
-              s={s}
-              Colors={Colors}
-            />
-            );
-          })() : searchPoint ? (
-            <ListMode
-              lots={nearest}
-              onPick={onPickFromList}
-              onClear={onClearSearch}
-              s={s}
-              Colors={Colors}
-            />
-          ) : (
-            <IdleMode s={s} />
-          )}
-        </View>
+              );
+            })()}
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -237,71 +227,7 @@ const ParkingMarker = ({ lot, selected, onPress, Colors, s }: any) => {
 
 // ───── Mode components ──────────────────────────────────────────
 
-const IdleMode = ({ s }: { s: any }) => (
-  <View style={s.idle}>
-    <Text style={s.idleIcon}>👆</Text>
-    <Text style={s.idleTitle}>Tap any place on the map</Text>
-    <Text style={s.idleSub}>
-      We'll show you the {NEAREST_COUNT} closest parkings to that location.
-    </Text>
-  </View>
-);
-
-const ListMode = ({
-  lots, onPick, onClear, s, Colors,
-}: {
-  lots: RankedLot[];
-  onPick: (l: RankedLot) => void;
-  onClear: () => void;
-  s: any;
-  Colors: ThemeColors;
-}) => {
-  const { isFavourite, toggleFavourite } = useApp();
-  return (
-    <View>
-      <View style={s.listHdr}>
-        <Text style={s.listTitle}>Nearest parkings</Text>
-        <TouchableOpacity onPress={onClear}>
-          <Text style={s.listClear}>Clear</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView style={{ maxHeight: 280 }}>
-        {lots.map(lot => {
-          const fav = isFavourite(lot.id);
-          return (
-            <TouchableOpacity
-              key={lot.id}
-              style={s.listRow}
-              activeOpacity={0.75}
-              onPress={() => onPick(lot)}
-            >
-              <View style={[s.dot, { backgroundColor: pinColor(Colors, lot.availabilityLevel) }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.lotName}>{lot.name}</Text>
-                <Text style={s.lotAddr} numberOfLines={1}>{lot.address}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={s.lotKm}>{lot.computedKm.toFixed(1)} km</Text>
-                <Text style={s.lotFree}>
-                  {lot.freeSpots === 0 ? 'Full' : `${lot.freeSpots} free`}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={s.rowFavBtn}
-                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                onPress={() => toggleFavourite(lot.id)}
-                accessibilityRole="button"
-                accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'}
-              >
-                <Text style={s.rowFavIcon}>{fav ? '❤️' : '🤍'}</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-};
+// Removed IdleMode and ListMode
 
 const DetailMode = ({
   lot, distanceKmShown, onBack, onNavigate, onViewSimulation, s, Colors,
@@ -315,6 +241,7 @@ const DetailMode = ({
   Colors: ThemeColors;
 }) => {
   const { isFavourite, toggleFavourite } = useApp();
+  const [showSpots, setShowSpots] = useState(false);
   const fav = isFavourite(lot.id);
   const evCount = lot.floors
     .flatMap(f => f.spots)
@@ -374,14 +301,31 @@ const DetailMode = ({
         </View>
       </View>
 
-      {/* Real-time spot grid (first floor) */}
+      {/* Real-time spot grid (first floor) hidden behind a button */}
       {lot.floors.length > 0 && (
         <View style={s.gridWrap}>
-          <SpotGrid
-            floor={lot.floors[0]}
-            totalFree={lot.freeSpots}
-            totalSpots={lot.totalSpots}
-          />
+          {!showSpots ? (
+            <TouchableOpacity 
+              style={[s.actionBtn, { borderColor: Colors.border2, marginTop: Spacing.sm }]}
+              onPress={() => setShowSpots(true)}
+            >
+              <Text style={[s.actionBtnTxt, { color: Colors.text }]}>👁️ Voir les places</Text>
+            </TouchableOpacity>
+          ) : (
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={true}>
+              <TouchableOpacity 
+                style={{ marginBottom: Spacing.sm, alignItems: 'center' }}
+                onPress={() => setShowSpots(false)}
+              >
+                <Text style={s.backLink}>Masquer les places ↑</Text>
+              </TouchableOpacity>
+              <SpotGrid
+                floor={lot.floors[0]}
+                totalFree={lot.freeSpots}
+                totalSpots={lot.totalSpots}
+              />
+            </ScrollView>
+          )}
         </View>
       )}
 
@@ -418,6 +362,7 @@ const ESP32DetailMode = ({
   Colors: ThemeColors;
 }) => {
   const { isFavourite, toggleFavourite } = useApp();
+  const [showSpots, setShowSpots] = useState(false);
   const fav = isFavourite(lot.id);
 
   return (
@@ -465,14 +410,31 @@ const ESP32DetailMode = ({
         </View>
       </View>
 
-      {/* Real-time spot grid — all 6 spots */}
+      {/* Real-time spot grid — all 6 spots hidden behind a button */}
       {lot.floors.length > 0 && (
         <View style={s.gridWrap}>
-          <SpotGrid
-            floor={lot.floors[0]}
-            totalFree={lot.freeSpots}
-            totalSpots={lot.totalSpots}
-          />
+          {!showSpots ? (
+            <TouchableOpacity 
+              style={[s.actionBtn, { borderColor: Colors.border2, marginTop: Spacing.sm }]}
+              onPress={() => setShowSpots(true)}
+            >
+              <Text style={[s.actionBtnTxt, { color: Colors.text }]}>👁️ Voir les places</Text>
+            </TouchableOpacity>
+          ) : (
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={true}>
+              <TouchableOpacity 
+                style={{ marginBottom: Spacing.sm, alignItems: 'center' }}
+                onPress={() => setShowSpots(false)}
+              >
+                <Text style={s.backLink}>Masquer les places ↑</Text>
+              </TouchableOpacity>
+              <SpotGrid
+                floor={lot.floors[0]}
+                totalFree={lot.freeSpots}
+                totalSpots={lot.totalSpots}
+              />
+            </ScrollView>
+          )}
         </View>
       )}
 
