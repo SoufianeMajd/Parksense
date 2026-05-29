@@ -15,7 +15,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { distanceKm, openDirections } from '../services/geo';
 import { buildNavSession } from '../services/mockData';
 import { LiveChip } from '../components/LiveChip';
-import { SpotGrid  } from '../components/SpotGrid';
+import { SpotGrid } from '../components/SpotGrid';
 
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 
@@ -24,9 +24,9 @@ const MAPS_AVAILABLE = true;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const DARK_MAP_STYLE = [
-  { elementType: 'geometry',            stylers: [{ color: '#1a1e28' }] },
-  { elementType: 'labels.text.fill',    stylers: [{ color: '#8b92a8' }] },
-  { elementType: 'labels.text.stroke',  stylers: [{ color: '#0d0f14' }] },
+  { elementType: 'geometry', stylers: [{ color: '#1a1e28' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8b92a8' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0d0f14' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#252a3a' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d0f14' }] },
 ];
@@ -39,15 +39,15 @@ const pinColor = (Colors: ThemeColors, level: string) =>
 interface RankedLot extends ParkingLot { computedKm: number; }
 
 export const MapScreen: React.FC = () => {
-  const Colors                  = useColors();
-  const { mode }                = useTheme();
-  const s                       = useThemedStyles(makeStyles);
-  const navigation              = useNavigation<Nav>();
+  const Colors = useColors();
+  const { mode } = useTheme();
+  const s = useThemedStyles(makeStyles);
+  const navigation = useNavigation<Nav>();
   const { lots, startNavigation } = useApp();
-  const { coords: userCoords }  = useUserLocation();
+  const { coords: userCoords } = useUserLocation();
 
   const [searchPoint, setSearchPoint] = useState<Coordinates | null>(null);
-  const [selected, setSelected]       = useState<ParkingLot | null>(null);
+  const [selected, setSelected] = useState<ParkingLot | null>(null);
   // Marker view tracking is now handled per-marker to allow easy tapping
 
   // Nearest N lots to the tapped point, with computed distance.
@@ -88,13 +88,14 @@ export const MapScreen: React.FC = () => {
             provider={PROVIDER_DEFAULT}
             customMapStyle={mode === 'dark' ? DARK_MAP_STYLE : []}
             initialRegion={{
-              latitude:  userCoords.latitude,
+              latitude: userCoords.latitude,
               longitude: userCoords.longitude,
               latitudeDelta: 0.03,
               longitudeDelta: 0.03,
             }}
             showsUserLocation={true}
             showsMyLocationButton={true}
+            mapPadding={{ top: 110, right: 5, bottom: 0, left: 0 }}
             onPress={onMapPress}
           >
             {/* User's live location */}
@@ -168,22 +169,26 @@ export const MapScreen: React.FC = () => {
                   distanceKmShown={selectedDistanceKm}
                   onBack={undefined}
                   onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
+                  onViewSimulation={() => {
+                    startNavigation(buildNavSession(liveSelected));
+                    navigation.navigate('NavigationScreen', { lot: liveSelected });
+                  }}
                   s={s}
                   Colors={Colors}
                 />
               ) : (
-              <DetailMode
-                lot={liveSelected}
-                distanceKmShown={selectedDistanceKm}
-                onBack={undefined}
-                onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
-                onViewSimulation={() => {
-                  startNavigation(buildNavSession(liveSelected));
-                  navigation.navigate('NavigationScreen', { lot: liveSelected });
-                }}
-                s={s}
-                Colors={Colors}
-              />
+                <DetailMode
+                  lot={liveSelected}
+                  distanceKmShown={selectedDistanceKm}
+                  onBack={undefined}
+                  onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
+                  onViewSimulation={() => {
+                    startNavigation(buildNavSession(liveSelected));
+                    navigation.navigate('NavigationScreen', { lot: liveSelected });
+                  }}
+                  s={s}
+                  Colors={Colors}
+                />
               );
             })()}
           </View>
@@ -305,7 +310,7 @@ const DetailMode = ({
       {lot.floors.length > 0 && (
         <View style={s.gridWrap}>
           {!showSpots ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[s.actionBtn, { borderColor: Colors.border2, marginTop: Spacing.sm }]}
               onPress={() => setShowSpots(true)}
             >
@@ -313,7 +318,7 @@ const DetailMode = ({
             </TouchableOpacity>
           ) : (
             <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={true}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ marginBottom: Spacing.sm, alignItems: 'center' }}
                 onPress={() => setShowSpots(false)}
               >
@@ -352,16 +357,17 @@ const DetailMode = ({
 };
 
 const ESP32DetailMode = ({
-  lot, distanceKmShown, onBack, onNavigate, s, Colors,
+  lot, distanceKmShown, onBack, onNavigate, onViewSimulation, s, Colors,
 }: {
   lot: ParkingLot;
   distanceKmShown: number | null;
   onBack?: () => void;
   onNavigate: () => void;
+  onViewSimulation?: () => void;
   s: any;
   Colors: ThemeColors;
 }) => {
-  const { isFavourite, toggleFavourite } = useApp();
+  const { isFavourite, toggleFavourite, espSpotStatus } = useApp();
   const [showSpots, setShowSpots] = useState(false);
   const fav = isFavourite(lot.id);
 
@@ -408,13 +414,16 @@ const ESP32DetailMode = ({
         <View style={[s.infoChip, { backgroundColor: Colors.blueDim }]}>
           <Text style={[s.infoChipTxt, { color: Colors.blue }]}>🔵 Live ESP32</Text>
         </View>
+        <View style={[s.infoChip, { backgroundColor: Colors.amberDim }]}>
+          <Text style={[s.infoChipTxt, { color: Colors.amber }]}>MQTT: {espSpotStatus}</Text>
+        </View>
       </View>
 
       {/* Real-time spot grid — all 6 spots hidden behind a button */}
       {lot.floors.length > 0 && (
         <View style={s.gridWrap}>
           {!showSpots ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[s.actionBtn, { borderColor: Colors.border2, marginTop: Spacing.sm }]}
               onPress={() => setShowSpots(true)}
             >
@@ -422,7 +431,7 @@ const ESP32DetailMode = ({
             </TouchableOpacity>
           ) : (
             <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={true}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ marginBottom: Spacing.sm, alignItems: 'center' }}
                 onPress={() => setShowSpots(false)}
               >
@@ -438,8 +447,16 @@ const ESP32DetailMode = ({
         </View>
       )}
 
-      {/* Navigate button */}
+      {/* Action row */}
       <View style={s.actionsRow}>
+        <TouchableOpacity
+          style={[s.actionBtn, { borderColor: Colors.border2 }]}
+          activeOpacity={0.75}
+          onPress={onViewSimulation}
+        >
+          <Text style={[s.actionBtnTxt, { color: Colors.text }]}>ℹ️  Simulate route</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[s.actionBtn, {
             backgroundColor: lot.freeSpots > 0 ? Colors.green : Colors.bg3,
@@ -460,9 +477,9 @@ const ESP32DetailMode = ({
 
 
 const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: Colors.mapBg },
-  container:   { flex: 1 },
-  map:         { flex: 1 },
+  safe: { flex: 1, backgroundColor: Colors.mapBg },
+  container: { flex: 1 },
+  map: { flex: 1 },
 
   mapFallback: {
     flex: 1, backgroundColor: Colors.bg3,
@@ -475,7 +492,7 @@ const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
     color: Colors.text3, fontSize: FontSize.sm,
     textAlign: 'center', marginTop: 4, marginBottom: Spacing.md,
   },
-  lotList:        { flex: 1 },
+  lotList: { flex: 1 },
   lotListContent: { paddingBottom: 340, gap: Spacing.sm },
   lotRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -484,13 +501,13 @@ const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
     padding: Spacing.md, gap: Spacing.md,
   },
   lotRowSelected: { borderColor: Colors.accent },
-  dot:     { width: 10, height: 10, borderRadius: 5 },
-  lotName: { color: Colors.text,  fontSize: FontSize.md, fontWeight: '500' },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  lotName: { color: Colors.text, fontSize: FontSize.md, fontWeight: '500' },
   lotAddr: { color: Colors.text3, fontSize: FontSize.sm, marginTop: 2 },
-  lotFree: { color: Colors.text,  fontSize: FontSize.sm, fontWeight: '600' },
-  lotKm:   { color: Colors.text2, fontSize: FontSize.sm, fontWeight: '600' },
+  lotFree: { color: Colors.text, fontSize: FontSize.sm, fontWeight: '600' },
+  lotKm: { color: Colors.text2, fontSize: FontSize.sm, fontWeight: '600' },
 
-  userDot:     {
+  userDot: {
     width: 18, height: 18, borderRadius: 9,
     backgroundColor: Colors.blue, borderWidth: 3, borderColor: '#fff',
   },
@@ -543,7 +560,7 @@ const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 6,
   },
 
-  headerBar:   {
+  headerBar: {
     position: 'absolute', top: 52, left: 12, right: 12,
     backgroundColor: Colors.bg2, borderRadius: Radius.sm,
     borderWidth: 1, borderColor: Colors.border2,
@@ -552,71 +569,71 @@ const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
   },
   headerTitle: { color: Colors.text2, fontSize: FontSize.md, flex: 1 },
 
-  sheet:       {
+  sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: Colors.bg2,
     borderTopLeftRadius: Radius.md, borderTopRightRadius: Radius.md,
     padding: Spacing.lg, paddingTop: Spacing.sm,
     maxHeight: '70%',
   },
-  handle:      {
+  handle: {
     width: 36, height: 4, backgroundColor: Colors.border2,
     borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.md,
   },
 
   // Idle mode
-  idle:        { alignItems: 'center', paddingVertical: Spacing.lg, gap: 6 },
-  idleIcon:    { fontSize: 36 },
-  idleTitle:   { color: Colors.text,  fontSize: FontSize.lg, fontWeight: '600' },
-  idleSub:     { color: Colors.text3, fontSize: FontSize.sm, textAlign: 'center' },
+  idle: { alignItems: 'center', paddingVertical: Spacing.lg, gap: 6 },
+  idleIcon: { fontSize: 36 },
+  idleTitle: { color: Colors.text, fontSize: FontSize.lg, fontWeight: '600' },
+  idleSub: { color: Colors.text3, fontSize: FontSize.sm, textAlign: 'center' },
 
   // List mode
-  listHdr:     {
+  listHdr: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: Spacing.sm,
   },
-  listTitle:   { color: Colors.text,  fontSize: FontSize.lg, fontWeight: '600' },
-  listClear:   { color: Colors.accent, fontSize: FontSize.sm, fontWeight: '500' },
-  listRow:     {
+  listTitle: { color: Colors.text, fontSize: FontSize.lg, fontWeight: '600' },
+  listClear: { color: Colors.accent, fontSize: FontSize.sm, fontWeight: '500' },
+  listRow: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     paddingVertical: Spacing.sm + 2,
     borderBottomWidth: 1, borderColor: Colors.border,
   },
-  rowFavBtn:   { padding: 4, marginLeft: Spacing.xs },
-  rowFavIcon:  { fontSize: 18 },
+  rowFavBtn: { padding: 4, marginLeft: Spacing.xs },
+  rowFavIcon: { fontSize: 18 },
 
   // Detail mode
-  sheetTop:    {
+  sheetTop: {
     flexDirection: 'row', justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  backLink:    { color: Colors.accent, fontSize: FontSize.sm, fontWeight: '500' },
-  sheetName:   { color: Colors.text,  fontSize: FontSize.xl, fontWeight: '600' },
-  sheetAddr:   { color: Colors.text3, fontSize: FontSize.sm, marginTop: 2 },
-  sheetRight:  { flexDirection: 'row', alignItems: 'flex-end' },
-  price:       { color: Colors.green, fontSize: FontSize.xxl, fontWeight: '700' },
-  priceUnit:   { color: Colors.text3, fontSize: FontSize.sm, marginBottom: 2 },
+  backLink: { color: Colors.accent, fontSize: FontSize.sm, fontWeight: '500' },
+  sheetName: { color: Colors.text, fontSize: FontSize.xl, fontWeight: '600' },
+  sheetAddr: { color: Colors.text3, fontSize: FontSize.sm, marginTop: 2 },
+  sheetRight: { flexDirection: 'row', alignItems: 'flex-end' },
+  price: { color: Colors.green, fontSize: FontSize.xxl, fontWeight: '700' },
+  priceUnit: { color: Colors.text3, fontSize: FontSize.sm, marginBottom: 2 },
 
-  chipsRow:    {
+  chipsRow: {
     flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
-  infoChip:    {
+  infoChip: {
     paddingHorizontal: Spacing.sm + 2, paddingVertical: 4,
     borderRadius: Radius.full,
   },
   infoChipTxt: { fontSize: FontSize.sm, fontWeight: '600' },
 
-  gridWrap:    { marginBottom: Spacing.md },
+  gridWrap: { marginBottom: Spacing.md },
 
-  actionsRow:  {
+  actionsRow: {
     flexDirection: 'row', gap: Spacing.sm,
   },
-  actionBtn:   {
+  actionBtn: {
     flex: 1, borderRadius: Radius.sm, borderWidth: 1,
     paddingVertical: Spacing.sm + 4, alignItems: 'center',
   },
-  actionBtnTxt:{ fontSize: FontSize.md, fontWeight: '600' },
+  actionBtnTxt: { fontSize: FontSize.md, fontWeight: '600' },
 
   // ESP32 Mode
   espContainer: { gap: Spacing.md },

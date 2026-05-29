@@ -87,7 +87,7 @@ export const simulateLiveUpdate = (lot: ParkingLot): ParkingLot => {
     }),
   }));
 
-  const allSpots = updatedFloors.flatMap(f => f.spots);
+  const allSpots = updatedFloors.reduce((acc, f) => acc.concat(f.spots), [] as typeof updatedFloors[0]['spots']);
   const newFree  = allSpots.filter(s => s.status === 'free').length;
   const ratio    = allSpots.length > 0 ? newFree / allSpots.length : 0;
   const level: AvailabilityLevel = newFree === 0 ? 'full'

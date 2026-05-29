@@ -36,7 +36,8 @@ interface AppContextValue {
   parkCar: (coords: Coordinates, info?: ParkCarInput) => void;
   unparkCar: () => void;
   user: UserProfile;
-  espSpotStatus: 'Libre' | 'Occupee' | 'Loading';
+  espSpotStatus: string;
+  resetEspSpots: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -50,7 +51,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [parkedCar, setParkedCar] = useState<ParkedCar | null>(null);
   const [user] = useState<UserProfile>(MOCK_USER);
   // Track status for each of the 4 ESP32-controlled spots
-  const [espSpotStatus, setEspSpotStatus] = useState<'Libre' | 'Occupee' | 'Loading'>('Loading');
+  const [espSpotStatus, setEspSpotStatus] = useState<string>('Loading');
+  const mqttClientRef = useRef<Paho.Client | null>(null);
 
   // Initial fetch
   const loadLots = useCallback(async () => {
@@ -85,19 +87,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Update the esp32-lot when any spot status changes via MQTT
   const updateEsp32Spot = useCallback((spotId: string, newStatus: 'free' | 'occupied') => {
     setLots(prev => prev.map(lot => {
-      if (lot.id !== '11111111-1111-1111-1111-111111111111') return lot;
+      if (lot.id !== '11111111-1111-1111-1111-111111111111' && lot.name !== 'ParkSense ESP32 Simulation') return lot;
       const updatedFloors = lot.floors.map(floor => ({
         ...floor,
         spots: floor.spots.map(spot =>
-          spot.id === spotId ? { ...spot, status: newStatus } : spot
+          spot.label === spotId ? { ...spot, status: newStatus } : spot
         ),
       }));
-      const allSpots = updatedFloors.flatMap(f => f.spots);
+      const allSpots = updatedFloors.reduce((acc, f) => acc.concat(f.spots), [] as typeof updatedFloors[0]['spots']);
       const newFreeCount = allSpots.filter(s => s.status === 'free').length;
-      const ratio = newFreeCount / allSpots.length;
+      const ratio = allSpots.length > 0 ? newFreeCount / allSpots.length : 0;
       const level = newFreeCount === 0 ? 'full'
-                  : newFreeCount === 1  ? 'low'
-                  :                       'high';
+        : newFreeCount === 1 ? 'low'
+          : 'high';
       return { ...lot, floors: updatedFloors, freeSpots: newFreeCount, availabilityLevel: level };
     }));
   }, []);
@@ -125,21 +127,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
 
     client.onMessageArrived = (message) => {
-      const payload = message.payloadString.trim();
+      const payload = message.payloadString.trim().toLowerCase();
       const spotId = SPOT_TOPICS[message.destinationName];
-      if (spotId && (payload === 'Libre' || payload === 'Occupee')) {
-        updateEsp32SpotRef.current(spotId, payload === 'Libre' ? 'free' : 'occupied');
-        if (spotId === 'A1') setEspSpotStatus(payload as 'Libre' | 'Occupee');
+      if (spotId) {
+        const isFree = payload === 'libre';
+        const isOcc = payload === 'occupee' || payload === 'occupée';
+        if (isFree || isOcc) {
+          updateEsp32SpotRef.current(spotId, isFree ? 'free' : 'occupied');
+          if (spotId === 'A1') setEspSpotStatus(message.payloadString.trim());
+        }
       }
     };
 
     client.connect({
       onSuccess: () => {
         console.log('MQTT Connected to HiveMQ!');
+        mqttClientRef.current = client;
         Object.keys(SPOT_TOPICS).forEach(t => client.subscribe(t));
       },
       onFailure: (err) => {
         console.log('MQTT Connection Failed:', err.errorMessage);
+        mqttClientRef.current = null;
       },
       useSSL: true,
       timeout: 3,
@@ -148,6 +156,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       try {
         if (client.isConnected()) client.disconnect();
+        mqttClientRef.current = null;
       } catch (e) { /* ignore */ }
     };
   }, []); // runs once — uses ref to always access latest update function
@@ -158,6 +167,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     , []);
   const isFavourite = useCallback((id: string) => favouriteIds.includes(id), [favouriteIds]);
   const favouriteLots = lots.filter(l => favouriteIds.includes(l.id));
+
+  // Reset ESP32 spots via MQTT
+  const resetEspSpots = useCallback(() => {
+    if (!mqttClientRef.current || !mqttClientRef.current.isConnected()) return;
+    const topics = ['parkwize/place1', 'parkwize/place2', 'parkwize/place3', 'parkwize/place4'];
+    topics.forEach(topic => {
+      const msg = new Paho.Message('Libre');
+      msg.destinationName = topic;
+      msg.retained = true;
+      mqttClientRef.current?.send(msg);
+    });
+  }, []);
 
   // Navigation session
   const startNavigation = useCallback((s: NavigationSession) => setNavSession(s), []);
@@ -188,6 +209,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       favouriteIds, toggleFavourite, isFavourite, favouriteLots,
       navSession, startNavigation, clearNavigation,
       parkedCar, parkCar, unparkCar, user, espSpotStatus,
+      resetEspSpots,
     }}>
       {children}
     </AppContext.Provider>
