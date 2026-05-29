@@ -25,3 +25,4 @@ delete_admin.sql
 
 # Arduino secrets
 sketch_may2a/secrets.h
+generate_mock_data.sql
