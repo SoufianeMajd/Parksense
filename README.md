@@ -5,7 +5,9 @@ ParkSense is a smart parking management application built with React Native and 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="./screen/app_screenshot.jpeg" width="35%" alt="ParkSense Mobile App Screen" />
+  <img src="./screen/app_screenshot.jpeg" width="30%" alt="ParkSense Mobile App Screen" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="./screen/login.jpeg" width="30%" alt="ParkSense Login Screen" />
 </p>
 
 ## 🏗️ Architecture Diagram

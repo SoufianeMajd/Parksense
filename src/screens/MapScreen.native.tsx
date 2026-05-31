@@ -98,11 +98,6 @@ export const MapScreen: React.FC = () => {
             mapPadding={{ top: 110, right: 5, bottom: 0, left: 0 }}
             onPress={onMapPress}
           >
-            {/* User's live location */}
-            <Marker coordinate={userCoords} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={s.userDot} />
-            </Marker>
-
             {/* Tapped place marker */}
             {searchPoint && (
               <Marker coordinate={searchPoint} anchor={{ x: 0.5, y: 0.5 }}>
@@ -202,16 +197,15 @@ export const MapScreen: React.FC = () => {
 const ParkingMarker = ({ lot, selected, onPress, Colors, s }: any) => {
   const [tracks, setTracks] = useState(true);
 
-  // Briefly track view changes only when data changes to allow bitmap render,
-  // then stop tracking so the marker responds instantly to taps.
+  const isSelected = selected?.id === lot.id;
+
   useEffect(() => {
     setTracks(true);
     const t = setTimeout(() => setTracks(false), 600);
     return () => clearTimeout(t);
-  }, [lot.freeSpots, lot.availabilityLevel]);
+  }, [lot.freeSpots, lot.availabilityLevel, isSelected]);
 
   const pColor = pinColor(Colors, lot.availabilityLevel);
-  const isSelected = selected?.id === lot.id;
 
   return (
     <Marker
@@ -220,11 +214,13 @@ const ParkingMarker = ({ lot, selected, onPress, Colors, s }: any) => {
       tracksViewChanges={tracks}
       onPress={() => onPress(lot)}
     >
-      <View style={[s.markerOuter, { borderColor: pColor }, isSelected && s.markerSelected]}>
-        <View style={[s.markerLeft, { backgroundColor: pColor }]}>
-          <Text style={s.markerP}>P</Text>
+      <View style={s.markerWrap}>
+        <View style={[s.markerOuter, { borderColor: pColor }, isSelected && s.markerSelected]}>
+          <Text style={[s.markerP, { backgroundColor: pColor }]}>P</Text>
+          <Text style={[s.markerCount, { color: pColor }]} numberOfLines={1}>
+            {lot.freeSpots}
+          </Text>
         </View>
-        <Text style={[s.markerCount, { color: pColor }]}>{lot.freeSpots}</Text>
       </View>
     </Marker>
   );
@@ -528,36 +524,41 @@ const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
   pinSelected: {
     transform: [{ scale: 1.2 }],
   },
-  /* ── Flat badge marker (guaranteed to render on Android) ── */
+  /* ── Badge marker ── */
+  markerWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   markerOuter: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111827',
-    borderRadius: 8,
-    borderWidth: 2.5,
-    overflow: 'visible',
-    elevation: 4,
+    backgroundColor: '#11161B',
+    borderRadius: 14,
+    borderWidth: 3,
+    paddingRight: 12,
+    height: 36,
+    width: 75,
   },
   markerSelected: {
     transform: [{ scale: 1.15 }],
   },
-  markerLeft: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: 2,
-  },
   markerP: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
+    width: 26,
+    height: 26,
+    textAlign: 'center',
+    lineHeight: 26,
+    borderRadius: 8,
+    margin: 2,
+    marginLeft: 3,
+    overflow: 'hidden',
   },
   markerCount: {
-    fontSize: 13,
-    fontWeight: '800',
-    paddingHorizontal: 6,
+    fontSize: 16,
+    fontWeight: '900',
+    marginLeft: 4,
   },
 
   headerBar: {
