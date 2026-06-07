@@ -32,5 +32,5 @@ generate_mock_data.sql
 
 # Ignore captures d'ecran and reports
 captures d'ecran/
-rapport.pdf
+*.pdf
 rapport.html
