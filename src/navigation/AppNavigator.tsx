@@ -17,6 +17,8 @@ import { ProfileScreen }    from '../screens/ProfileScreen';
 import { NavigationScreen } from '../screens/NavigationScreen';
 import { LoginScreen }      from '../screens/LoginScreen';
 import { SignUpScreen }     from '../screens/SignUpScreen';
+import { CompanyDashboardScreen } from '../screens/CompanyDashboardScreen';
+import { AddParkingScreen } from '../screens/AddParkingScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab   = createBottomTabNavigator<RootTabParamList>();
@@ -28,6 +30,7 @@ const TAB_META: Record<string, { icon: string; label: string }> = {
   FindCar: { icon: '🚗', label: 'My Car'     },
   Admin:   { icon: '📊', label: 'Analytics'  },
   Profile: { icon: '👤', label: 'Profile'    },
+  CompanyDashboard: { icon: '🏢', label: 'Company' },
 };
 
 // Tab icon with active indicator dot
@@ -82,6 +85,9 @@ const Tabs = () => {
       {userRole === 'Admin' && (
         <Tab.Screen name="Admin"   component={AdminScreen}   />
       )}
+      {userRole === 'Company' && (
+        <Tab.Screen name="CompanyDashboard" component={CompanyDashboardScreen} />
+      )}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -121,6 +127,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="NavigationScreen"
               component={NavigationScreen}
+              options={{ animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="AddParking"
+              component={AddParkingScreen}
               options={{ animation: 'slide_from_bottom' }}
             />
           </>

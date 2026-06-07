@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View, Text, TouchableOpacity,
-  ScrollView, StyleSheet,
+  StyleSheet, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { WebView } from 'react-native-webview';
 
 import { FontSize, Radius, Spacing, ThemeColors } from '../constants/theme';
 import { useColors, useThemedStyles } from '../context/ThemeContext';
-import { RootStackParamList, NavStep } from '../types';
+import { RootStackParamList } from '../types';
 import { useApp } from '../context/AppContext';
-import { LiveChip } from '../components/LiveChip';
+import { useUserLocation } from '../hooks/useUserLocation';
 
 type Route = RouteProp<RootStackParamList, 'NavigationScreen'>;
 
@@ -19,163 +20,114 @@ export const NavigationScreen: React.FC = () => {
   const s             = useThemedStyles(makeStyles);
   const route         = useRoute<Route>();
   const navigation    = useNavigation();
-  const { navSession, clearNavigation } = useApp();
+  const { clearNavigation } = useApp();
+  const { coords: userCoords } = useUserLocation();
   const lot           = route.params.lot;
-  const [eta, setEta] = useState(navSession?.etaMinutes ?? 6);
-
-  // Simulate ETA counting down every 30 s
-  useEffect(() => {
-    const id = setInterval(() => setEta(e => Math.max(0, e - 1)), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (!navSession) return null;
-
-  const dotStyle = (status: NavStep['status']) => ({
-    backgroundColor:
-      status === 'completed' ? Colors.green :
-      status === 'active'    ? Colors.blue  : Colors.surface2,
-    borderWidth:  status === 'upcoming' ? 2 : 0,
-    borderColor:  Colors.border2,
-  });
-
-  const stepColor = (status: NavStep['status'], isLast: boolean): string => {
-    if (isLast)                   return Colors.green;
-    if (status === 'active')      return Colors.blue;
-    if (status === 'upcoming')    return Colors.text3;
-    return Colors.text2;
-  };
+  const dest          = lot.coordinates;
 
   const handleCancel = () => {
     clearNavigation();
     navigation.goBack();
   };
 
+  const openNativeGoogleMaps = () => {
+    const { latitude, longitude } = dest;
+    const originStr = `${userCoords.latitude},${userCoords.longitude}`;
+    const destStr = `${latitude},${longitude}`;
+    const url = Platform.select({
+      ios: `comgooglemaps://?saddr=${originStr}&daddr=${destStr}&directionsmode=driving`,
+      android: `google.navigation:q=${destStr}&mode=d`,
+      default: `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}&travelmode=driving`,
+    });
+    Linking.openURL(url!).catch(() => {
+      Linking.openURL(
+        `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}&travelmode=driving`,
+      );
+    });
+  };
+
+  const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userCoords.latitude},${userCoords.longitude}&destination=${dest.latitude},${dest.longitude}&travelmode=driving`;
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <View style={s.container}>
+        <WebView
+          style={s.webview}
+          source={{ uri: mapsUrl }}
+          startInLoadingState
+          javaScriptEnabled
+          domStorageEnabled
+          geolocationEnabled
+          allowsBackForwardNavigationGestures
+        />
 
-      {/* ── Turn instruction banner ──────────────────────────── */}
-      <View style={s.instructionCard}>
-        <View style={s.turnIcon}>
-          <Text style={s.turnIconTxt}>↗</Text>
+        {/* ── Top bar ──────────────────────────────────────────── */}
+        <View style={s.topBar}>
+          <Text style={s.destName} numberOfLines={1}>{lot.name}</Text>
+          <Text style={s.destAddr} numberOfLines={1}>{lot.distanceKm} km · {lot.freeSpots} free</Text>
+          <TouchableOpacity onPress={handleCancel} style={s.cancelBtn}>
+            <Text style={s.cancelTxt}>✕</Text>
+          </TouchableOpacity>
         </View>
-        <View style={s.turnText}>
-          <Text style={s.turnMain}>{navSession.currentInstruction}</Text>
-          <Text style={s.turnSub}>{navSession.currentDetail}</Text>
+
+        {/* ── Bottom bar ───────────────────────────────────────── */}
+        <View style={s.bottomBar}>
+          <TouchableOpacity style={s.voiceBtn} onPress={openNativeGoogleMaps} activeOpacity={0.85}>
+            <Text style={s.voiceBtnIcon}>🗣️</Text>
+            <Text style={s.voiceBtnTxt}>Assistant vocal</Text>
+            <Text style={s.voiceBtnSub}>Ouvrir dans Google Maps</Text>
+          </TouchableOpacity>
         </View>
-        <LiveChip label="Navigating" color={Colors.blue} />
       </View>
-
-      {/* ── ETA strip ───────────────────────────────────────── */}
-      <View style={s.etaStrip}>
-        {[
-          { val: String(eta),                    unit: 'min ETA',    color: Colors.accent },
-          { val: String(navSession.distanceKm),  unit: 'km left',    color: Colors.text   },
-          { val: navSession.arrivalTime,          unit: 'Arrival',    color: Colors.text   },
-          { val: 'B7',                            unit: 'Spot ahead', color: Colors.green  },
-        ].map((item, i) => (
-          <View key={i} style={s.etaItem}>
-            <Text style={[s.etaVal, { color: item.color }]}>{item.val}</Text>
-            <Text style={s.etaUnit}>{item.unit}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* ── Step-by-step route ──────────────────────────────── */}
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
-        <Text style={s.stepsTitle}>ROUTE STEPS</Text>
-
-        {navSession.steps.map((step, i) => {
-          const isLast = i === navSession.steps.length - 1;
-          return (
-            <View key={step.id} style={s.stepRow}>
-              {/* Timeline spine */}
-              <View style={s.stepLeft}>
-                <View style={[s.stepDot, dotStyle(step.status)]} />
-                {!isLast && <View style={s.stepLine} />}
-              </View>
-
-              {/* Step content */}
-              <View style={s.stepContent}>
-                <Text style={[s.stepInst, { color: stepColor(step.status, isLast) }]}>
-                  {isLast ? `🅿  ${step.instruction}` : step.instruction}
-                </Text>
-                <Text style={s.stepDetail}>{step.detail}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-
-      {/* ── Destination summary card ─────────────────────────── */}
-      <View style={s.destCard}>
-        <Text style={s.destLabel}>Destination</Text>
-        <Text style={s.destName}>{lot.name}</Text>
-        <Text style={s.destAddr}>{lot.address}</Text>
-      </View>
-
-      {/* ── Cancel button ────────────────────────────────────── */}
-      <TouchableOpacity style={s.cancelBtn} onPress={handleCancel} activeOpacity={0.75}>
-        <Text style={s.cancelTxt}>✕  Cancel Navigation</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: Colors.bg },
+  safe:      { flex: 1, backgroundColor: Colors.bg },
+  container: { flex: 1 },
+  webview:   { flex: 1, marginBottom: 70 },
 
-  instructionCard:{
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: Colors.bg2, margin: Spacing.lg,
-    borderRadius: Radius.sm, padding: Spacing.md,
+  topBar: {
+    position: 'absolute', top: 10, left: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.bg2, borderRadius: Radius.sm,
     borderWidth: 1, borderColor: Colors.border2,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2,
+    gap: Spacing.sm,
   },
-  turnIcon:      {
-    width: 40, height: 40, backgroundColor: Colors.blueDim,
-    borderRadius: Radius.xs, alignItems: 'center', justifyContent: 'center',
+  destName: {
+    flex: 1, color: Colors.text, fontSize: FontSize.md,
+    fontWeight: '600',
   },
-  turnIconTxt:   { fontSize: FontSize.h3, color: Colors.blue },
-  turnText:      { flex: 1 },
-  turnMain:      { color: Colors.text,  fontSize: FontSize.md, fontWeight: '600' },
-  turnSub:       { color: Colors.text2, fontSize: FontSize.sm, marginTop: 2 },
+  destAddr: {
+    color: Colors.text3, fontSize: FontSize.sm,
+  },
+  cancelBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: Colors.redDim, alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelTxt: { color: Colors.red, fontSize: FontSize.md, fontWeight: '700' },
 
-  etaStrip:      {
-    flexDirection: 'row', justifyContent: 'space-around',
-    backgroundColor: Colors.bg2, paddingVertical: Spacing.md,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: Colors.border,
+  bottomBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    padding: Spacing.md, paddingBottom: Spacing.lg,
+    backgroundColor: Colors.bg2,
+    borderTopWidth: 1, borderTopColor: Colors.border,
   },
-  etaItem:       { alignItems: 'center' },
-  etaVal:        { fontSize: FontSize.h2, fontWeight: '700' },
-  etaUnit:       { color: Colors.text3, fontSize: FontSize.xs, marginTop: 2 },
-
-  scroll:        { flex: 1 },
-  scrollContent: { padding: Spacing.lg },
-  stepsTitle:    {
-    color: Colors.text3, fontSize: FontSize.sm, fontWeight: '600',
-    letterSpacing: 0.5, marginBottom: Spacing.md,
+  voiceBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.accent, borderRadius: Radius.sm,
+    paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
   },
-  stepRow:       { flexDirection: 'row', gap: Spacing.md },
-  stepLeft:      { alignItems: 'center', width: 16 },
-  stepDot:       { width: 16, height: 16, borderRadius: 8, flexShrink: 0 },
-  stepLine:      { flex: 1, width: 2, backgroundColor: Colors.border, marginTop: 2 },
-  stepContent:   { flex: 1, paddingBottom: Spacing.lg },
-  stepInst:      { fontSize: FontSize.base, fontWeight: '600' },
-  stepDetail:    { color: Colors.text3, fontSize: FontSize.sm, marginTop: 2 },
-
-  destCard:      {
-    margin: Spacing.lg, marginTop: 0, padding: Spacing.md,
-    backgroundColor: Colors.surface, borderRadius: Radius.sm,
-    borderWidth: 1, borderColor: Colors.border,
+  voiceBtnIcon: { fontSize: 24 },
+  voiceBtnTxt: {
+    flex: 1, color: '#fff', fontSize: FontSize.lg,
+    fontWeight: '700',
   },
-  destLabel:     { color: Colors.text3, fontSize: FontSize.sm },
-  destName:      { color: Colors.text,  fontSize: FontSize.lg, fontWeight: '600', marginTop: 2 },
-  destAddr:      { color: Colors.text3, fontSize: FontSize.sm, marginTop: 2 },
-
-  cancelBtn:     {
-    margin: Spacing.lg, marginTop: 0, paddingVertical: Spacing.md,
-    borderRadius: Radius.sm, borderWidth: 1,
-    borderColor: Colors.redDim, alignItems: 'center',
+  voiceBtnSub: {
+    color: 'rgba(255,255,255,0.75)', fontSize: FontSize.sm,
   },
-  cancelTxt:     { color: Colors.red, fontSize: FontSize.md, fontWeight: '600' },
 });

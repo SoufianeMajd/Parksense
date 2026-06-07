@@ -10,6 +10,12 @@ CREATE TABLE parking_lots (
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
     total_capacity INTEGER NOT NULL DEFAULT 0,
+    address TEXT,
+    price_per_hour DECIMAL(10,2) DEFAULT 0,
+    description TEXT,
+    approved BOOLEAN NOT NULL DEFAULT false,
+    company_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    phone VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
@@ -38,7 +44,8 @@ CREATE TABLE profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL,
     name VARCHAR(255),
-    role VARCHAR(50) DEFAULT 'User' CHECK (role IN ('Admin', 'User')),
+    company_name VARCHAR(255),
+    role VARCHAR(50) DEFAULT 'User' CHECK (role IN ('Admin', 'User', 'Company')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
@@ -86,7 +93,10 @@ ALTER TABLE reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Ajout de polices très permissives pour faciliter le développement (A SÉCURISER EN PROD)
-CREATE POLICY "Allow public read for lots" ON parking_lots FOR SELECT USING (true);
+CREATE POLICY "Allow public read approved lots" ON parking_lots FOR SELECT USING (approved = true);
+CREATE POLICY "Allow companies insert own lots" ON parking_lots FOR INSERT WITH CHECK (auth.uid() = company_id);
+CREATE POLICY "Allow companies update own lots" ON parking_lots FOR UPDATE USING (auth.uid() = company_id OR auth.uid() IN (SELECT id FROM profiles WHERE role = 'Admin'));
+CREATE POLICY "Allow companies read own lots" ON parking_lots FOR SELECT USING (auth.uid() = company_id OR approved = true OR auth.uid() IN (SELECT id FROM profiles WHERE role = 'Admin'));
 CREATE POLICY "Allow public read for spots" ON parking_spots FOR SELECT USING (true);
 CREATE POLICY "Allow public read for profiles" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Allow individual profile update" ON profiles FOR UPDATE USING (auth.uid() = id);
@@ -100,3 +110,8 @@ CREATE POLICY "Users can insert their own reservations" ON reservations FOR INSE
 
 -- Notifications
 CREATE POLICY "Users can view their own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+-- Companies can manage their own parking spots through their lots
+CREATE POLICY "Allow companies update their lot spots" ON parking_spots FOR UPDATE USING (
+    lot_id IN (SELECT id FROM parking_lots WHERE company_id = auth.uid())
+);

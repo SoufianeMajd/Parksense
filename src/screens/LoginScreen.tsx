@@ -98,7 +98,7 @@ export const LoginScreen = ({ navigation }: any) => {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={s.eyeButton}>
-                <Text style={s.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+                <Text style={s.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={s.forgotPassword}>

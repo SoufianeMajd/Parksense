@@ -18,6 +18,8 @@ export const SignUpScreen = ({ navigation }: any) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<'User' | 'Company'>('User');
+  const [companyName, setCompanyName] = useState('');
 
   const [emailError, setEmailError] = useState('');
 
@@ -60,6 +62,11 @@ export const SignUpScreen = ({ navigation }: any) => {
       return;
     }
 
+    if (role === 'Company' && !companyName.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer le nom de votre entreprise.');
+      return;
+    }
+
     if (emailError) {
       Alert.alert('Erreur', 'Veuillez corriger l\'adresse email.');
       return;
@@ -75,7 +82,7 @@ export const SignUpScreen = ({ navigation }: any) => {
       email: email.trim(),
       password,
       options: {
-        data: { name },
+        data: { name, role, company_name: role === 'Company' ? companyName.trim() : null },
       }
     });
 
@@ -83,9 +90,16 @@ export const SignUpScreen = ({ navigation }: any) => {
       Alert.alert('Erreur', error.message);
     } else if (data.user) {
       // Auto-create profile in public.profiles table
-      const { error: profileError } = await supabase.from('profiles').upsert([
-        { id: data.user.id, email: email.trim(), name: name, role: 'User' }
-      ]);
+      const profileData: any = {
+        id: data.user.id,
+        email: email.trim(),
+        name: name,
+        role: role,
+      };
+      if (role === 'Company') {
+        profileData.company_name = companyName.trim();
+      }
+      const { error: profileError } = await supabase.from('profiles').upsert([profileData]);
 
       if (profileError) {
         Alert.alert('Erreur Profil', "Le compte a été créé, mais l'enregistrement du profil a échoué: " + profileError.message);
@@ -136,6 +150,44 @@ export const SignUpScreen = ({ navigation }: any) => {
               </View>
             </View>
 
+            {/* Role Selector */}
+            <View style={s.inputWrapper}>
+              <Text style={s.inputLabel}>Type de compte</Text>
+              <View style={s.roleRow}>
+                <TouchableOpacity
+                  style={[s.roleOption, role === 'User' && s.roleOptionActive]}
+                  onPress={() => setRole('User')}
+                >
+                  <Text style={[s.roleIcon]}>👤</Text>
+                  <Text style={[s.roleLabel, role === 'User' && s.roleLabelActive]}>Utilisateur</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.roleOption, role === 'Company' && s.roleOptionActive]}
+                  onPress={() => setRole('Company')}
+                >
+                  <Text style={[s.roleIcon]}>🏢</Text>
+                  <Text style={[s.roleLabel, role === 'Company' && s.roleLabelActive]}>Entreprise</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Company Name Input (only for Company) */}
+            {role === 'Company' && (
+              <View style={s.inputWrapper}>
+                <Text style={s.inputLabel}>Nom de l'entreprise</Text>
+                <View style={s.inputBox}>
+                  <Text style={s.inputIcon}>🏢</Text>
+                  <TextInput
+                    style={s.input}
+                    placeholder="Ma Société de Parking"
+                    placeholderTextColor={Colors.text3}
+                    value={companyName}
+                    onChangeText={setCompanyName}
+                  />
+                </View>
+              </View>
+            )}
+
             {/* Email Input */}
             <View style={s.inputWrapper}>
               <Text style={s.inputLabel}>Adresse Email</Text>
@@ -169,7 +221,7 @@ export const SignUpScreen = ({ navigation }: any) => {
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={s.eyeButton}>
-                  <Text style={s.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+                  <Text style={s.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
                 </TouchableOpacity>
               </View>
               
@@ -355,5 +407,37 @@ const makeStyles = (Colors: ThemeColors) => StyleSheet.create({
     color: Colors.accent,
     fontSize: FontSize.md,
     fontWeight: '700',
+  },
+  roleRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  roleOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.bg2,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    height: 56,
+    paddingHorizontal: Spacing.md,
+  },
+  roleOptionActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentDim,
+  },
+  roleIcon: {
+    fontSize: FontSize.xl,
+  },
+  roleLabel: {
+    color: Colors.text2,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  roleLabelActive: {
+    color: Colors.accent,
   },
 });

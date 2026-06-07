@@ -33,6 +33,11 @@ export interface ParkingLot {
   distanceKm: number;
   floors: ParkingFloor[];
   availabilityLevel: AvailabilityLevel;
+  approved: boolean;
+  companyId?: string;
+  description?: string;
+  companyName?: string;
+  phone?: string;
 }
 
 // ─── Navigation session ───────────────────────────────────────────────────────
@@ -89,11 +94,12 @@ export interface UserProfile {
 
 // ─── Navigation param lists ───────────────────────────────────────────────────
 export type RootTabParamList = {
-  Home:    undefined;
-  Map:     undefined;
-  FindCar: undefined;
-  Admin:   undefined;
-  Profile: undefined;
+  Home:          undefined;
+  Map:           undefined;
+  FindCar:       undefined;
+  Admin:         undefined;
+  Profile:       undefined;
+  CompanyDashboard: undefined;
 };
 
 export type RootStackParamList = {
@@ -101,4 +107,5 @@ export type RootStackParamList = {
   NavigationScreen:  { lot: ParkingLot };
   Login:             undefined;
   SignUp:            undefined;
+  AddParking:        { lot?: ParkingLot };
 };

@@ -10,16 +10,22 @@ import { useColors, useThemedStyles } from '../context/ThemeContext';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { distanceKm, openDirections } from '../services/geo';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { distanceKm } from '../services/geo';
+import { buildNavSession } from '../services/mockData';
 import { ParkingCard }   from '../components/ParkingCard';
 import { StatCard }      from '../components/StatCard';
 import { SectionHeader } from '../components/SectionHeader';
-import { ParkingLot } from '../types';
+import { ParkingLot, RootStackParamList } from '../types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen: React.FC = () => {
   const Colors                  = useColors();
   const s                       = useThemedStyles(makeStyles);
-  const { lots, isLoading, refreshLots } = useApp();
+  const navigation              = useNavigation<Nav>();
+  const { lots, isLoading, refreshLots, startNavigation } = useApp();
   const { user: authUser }      = useAuth();
   const { coords, status, isReal, refresh: refreshLocation } = useUserLocation();
 
@@ -67,7 +73,8 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleNavigate = (lot: ParkingLot) => {
-    openDirections(lot.coordinates, lot.name);
+    startNavigation(buildNavSession(lot));
+    navigation.navigate('NavigationScreen', { lot });
   };
 
   const locationBadge =

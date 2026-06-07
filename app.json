@@ -3,7 +3,6 @@
     "name": "ParkSense",
     "slug": "parksense",
     "version": "1.0.0",
-    "newArchEnabled": false,
     "ios": {
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ParkSense uses your location to find the nearest available parking and guide you there."

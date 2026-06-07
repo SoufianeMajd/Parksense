@@ -8,7 +8,8 @@ export const PARKING_LOTS: ParkingLot[] = [
     address: 'Bd Zerktouni, Maârif',
     coordinates: { latitude: 33.5814, longitude: -7.6257 },
     totalSpots: 120, freeSpots: 84, pricePerHour: 12,
-    rating: 4.6, distanceKm: 0.3, availabilityLevel: 'high',
+    rating: 4.6, distanceKm: 0.3,     approved: true,
+    availabilityLevel: 'high',
     floors: [
       { label: 'Floor A', spots: [
         { id: 'A1', label: 'A1', status: 'free'     },
@@ -39,7 +40,7 @@ export const PARKING_LOTS: ParkingLot[] = [
     address: 'Centre-Ville, Casablanca',
     coordinates: { latitude: 33.5945, longitude: -7.6190 },
     totalSpots: 200, freeSpots: 38, pricePerHour: 10,
-    rating: 4.1, distanceKm: 1.5, availabilityLevel: 'medium',
+    rating: 4.1, distanceKm: 1.5, approved: true, availabilityLevel: 'medium',
     floors: [
       { label: 'Floor A', spots: [
         { id: 'A1', label: 'A1', status: 'occupied' },
@@ -56,7 +57,7 @@ export const PARKING_LOTS: ParkingLot[] = [
     address: 'Bd Houphouët Boigny',
     coordinates: { latitude: 33.6006, longitude: -7.6166 },
     totalSpots: 350, freeSpots: 4, pricePerHour: 15,
-    rating: 4.4, distanceKm: 2.5, availabilityLevel: 'full',
+    rating: 4.4, distanceKm: 2.5, approved: true, availabilityLevel: 'full',
     floors: [
       { label: 'Floor B', spots: [
         { id: 'B1', label: 'B1', status: 'occupied' },
@@ -73,7 +74,7 @@ export const PARKING_LOTS: ParkingLot[] = [
     address: 'Bd de la Corniche, Aïn Diab',
     coordinates: { latitude: 33.5859, longitude: -7.6798 },
     totalSpots: 180, freeSpots: 112, pricePerHour: 8,
-    rating: 4.5, distanceKm: 5.0, availabilityLevel: 'high',
+    rating: 4.5, distanceKm: 5.0, approved: true, availabilityLevel: 'high',
     floors: [
       { label: 'Floor A', spots: [
         { id: 'A1', label: 'A1', status: 'free'     },
@@ -90,7 +91,7 @@ export const PARKING_LOTS: ParkingLot[] = [
     address: 'Bd de la Corniche, Aïn Diab',
     coordinates: { latitude: 33.5896, longitude: -7.6892 },
     totalSpots: 600, freeSpots: 215, pricePerHour: 5,
-    rating: 4.7, distanceKm: 6.0, availabilityLevel: 'medium',
+    rating: 4.7, distanceKm: 6.0, approved: true, availabilityLevel: 'medium',
     floors: [
       { label: 'Floor A', spots: [
         { id: 'A1', label: 'A1', status: 'free'     },
@@ -107,7 +108,7 @@ export const PARKING_LOTS: ParkingLot[] = [
     address: 'À proximité de votre position',
     coordinates: { latitude: 33.5840, longitude: -7.6240 },
     totalSpots: 6, freeSpots: 4, pricePerHour: 5,
-    rating: 5.0, distanceKm: 0.3, availabilityLevel: 'medium',
+    rating: 5.0, distanceKm: 0.3, approved: true, availabilityLevel: 'medium',
     floors: [
       { label: 'Floor A', spots: [
         { id: 'A1', label: 'A1', status: 'free'     },

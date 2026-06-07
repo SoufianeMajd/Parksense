@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userRole: string | null;
+  companyName: string | null;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   userRole: null,
+  companyName: null,
   signOut: async () => { },
 });
 
@@ -27,6 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
   const [showWarning, setShowWarning] = useState(false);
   const [countdown, setCountdown] = useState(WARNING_TIMEOUT_SEC);
@@ -42,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = useCallback(async () => {
     clearTimers();
     setShowWarning(false);
+    setCompanyName(null);
     await supabase.auth.signOut();
   }, [clearTimers]);
 
@@ -93,13 +97,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, company_name')
         .eq('id', userId)
         .single();
 
       if (error) throw error;
       if (data) {
         setUserRole(data.role);
+        setCompanyName(data.company_name || null);
       }
     } catch (e) {
       console.log("Error fetching role:", e);
@@ -141,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, userRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, userRole, companyName, signOut }}>
       {children}
       <Modal visible={showWarning} transparent animationType="fade">
         <View style={styles.modalBg}>

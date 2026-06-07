@@ -29,3 +29,8 @@ generate_mock_data.sql
 
 # Ignore Antigravity/AI prompts
 .prompts/
+
+# Ignore captures d'ecran and reports
+captures d'ecran/
+rapport.pdf
+rapport.html

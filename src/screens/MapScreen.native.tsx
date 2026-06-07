@@ -12,7 +12,7 @@ import { useColors, useTheme, useThemedStyles } from '../context/ThemeContext';
 import { Coordinates, ParkingLot, RootStackParamList } from '../types';
 import { useApp } from '../context/AppContext';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { distanceKm, openDirections } from '../services/geo';
+import { distanceKm } from '../services/geo';
 import { buildNavSession } from '../services/mockData';
 import { LiveChip } from '../components/LiveChip';
 import { SpotGrid } from '../components/SpotGrid';
@@ -163,7 +163,10 @@ export const MapScreen: React.FC = () => {
                   lot={liveSelected}
                   distanceKmShown={selectedDistanceKm}
                   onBack={undefined}
-                  onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
+                  onNavigate={() => {
+                    startNavigation(buildNavSession(liveSelected));
+                    navigation.navigate('NavigationScreen', { lot: liveSelected });
+                  }}
                   onViewSimulation={() => {
                     startNavigation(buildNavSession(liveSelected));
                     navigation.navigate('NavigationScreen', { lot: liveSelected });
@@ -176,7 +179,10 @@ export const MapScreen: React.FC = () => {
                   lot={liveSelected}
                   distanceKmShown={selectedDistanceKm}
                   onBack={undefined}
-                  onNavigate={() => openDirections(liveSelected.coordinates, liveSelected.name)}
+                  onNavigate={() => {
+                    startNavigation(buildNavSession(liveSelected));
+                    navigation.navigate('NavigationScreen', { lot: liveSelected });
+                  }}
                   onViewSimulation={() => {
                     startNavigation(buildNavSession(liveSelected));
                     navigation.navigate('NavigationScreen', { lot: liveSelected });

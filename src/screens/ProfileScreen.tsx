@@ -30,12 +30,14 @@ export const ProfileScreen: React.FC = () => {
   const isDark                                   = mode === 'dark';
   const navigation                               = useNavigation<Nav>();
   const { user: mockUser, favouriteLots, startNavigation } = useApp();
-  const { signOut, user: authUser, userRole }            = useAuth();
+  const { signOut, user: authUser, userRole, companyName } = useAuth();
 
   const realName = authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || 'User';
   const realEmail = authUser?.email || '';
   const realInitials = realName.substring(0, 2).toUpperCase();
-  const displayRole = userRole === 'Admin' ? 'Admin' : 'Gold';
+  let displayRole = 'Gold';
+  if (userRole === 'Admin') displayRole = 'Admin';
+  else if (userRole === 'Company') displayRole = companyName || 'Company';
 
   // Navigate to the NavigationScreen for a favourite lot
   const handleViewMap = (lot: typeof favouriteLots[0]) => {

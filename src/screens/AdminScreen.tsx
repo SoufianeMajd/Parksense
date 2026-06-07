@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo, useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FontSize, Radius, Spacing, ThemeColors } from '../constants/theme';
@@ -7,6 +7,8 @@ import { useColors, useThemedStyles } from '../context/ThemeContext';
 import { useApp }        from '../context/AppContext';
 import { LiveChip }      from '../components/LiveChip';
 import { SectionHeader } from '../components/SectionHeader';
+import { fetchPendingParkingLots, updateParkingLotApproval } from '../services/parkingService';
+import { ParkingLot } from '../types';
 
 // Static peak-hour data for chart
 const PEAK_HOURS = [
@@ -25,7 +27,68 @@ const PEAK_HOURS = [
 export const AdminScreen: React.FC = () => {
   const Colors = useColors();
   const s = useThemedStyles(makeStyles);
-  const { lots } = useApp();
+  const { lots, refreshLots } = useApp();
+
+  const [pendingLots, setPendingLots] = useState<ParkingLot[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+
+  const loadPendingLots = async () => {
+    setPendingLoading(true);
+    const data = await fetchPendingParkingLots();
+    setPendingLots(data);
+    setPendingLoading(false);
+  };
+
+  useEffect(() => {
+    loadPendingLots();
+  }, []);
+
+  const handleApprove = async (lotId: string, lotName: string) => {
+    Alert.alert(
+      'Approuver',
+      `Approuver "${lotName}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Approuver',
+          onPress: async () => {
+            const { error } = await updateParkingLotApproval(lotId, true);
+            if (error) {
+              Alert.alert('Erreur', error.message);
+            } else {
+              Alert.alert('Succès', `${lotName} a été approuvé.`);
+              loadPendingLots();
+              refreshLots();
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReject = async (lotId: string, lotName: string) => {
+    Alert.alert(
+      'Rejeter',
+      `Rejeter "${lotName}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Rejeter',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await updateParkingLotApproval(lotId, false);
+            if (error) {
+              Alert.alert('Erreur', error.message);
+            } else {
+              Alert.alert('Rejeté', `${lotName} a été rejeté.`);
+              loadPendingLots();
+              refreshLots();
+            }
+          },
+        },
+      ],
+    );
+  };
 
   // Derive live occupancy from context
   const totalFree  = lots.reduce((n, l) => n + l.freeSpots,  0);
@@ -156,6 +219,57 @@ export const AdminScreen: React.FC = () => {
               </View>
             ))}
           </View>
+
+          {/* ── Pending company parkings ─────────────────────── */}
+          <SectionHeader title="Demandes de parkings (entreprises)" />
+          {pendingLoading ? (
+            <ActivityIndicator size="small" color={Colors.accent} style={{ marginBottom: Spacing.lg }} />
+          ) : pendingLots.length === 0 ? (
+            <View style={[s.card, { alignItems: 'center', paddingVertical: Spacing.xl }]}>
+              <Text style={{ color: Colors.text3, fontSize: FontSize.md }}>Aucune demande en attente</Text>
+            </View>
+          ) : (
+            pendingLots.map(lot => (
+              <View key={lot.id} style={s.card}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: Colors.text, fontSize: FontSize.lg, fontWeight: '600' }}>{lot.name}</Text>
+                    <Text style={{ color: Colors.text3, fontSize: FontSize.sm, marginTop: 2 }}>{lot.address}</Text>
+                    <View style={{ flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.sm }}>
+                      <Text style={{ color: Colors.text2, fontSize: FontSize.sm }}>🅿️ {lot.totalSpots} places</Text>
+                      <Text style={{ color: Colors.text2, fontSize: FontSize.sm }}>💰 {lot.pricePerHour} DH/h</Text>
+                    </View>
+                    {lot.phone ? (
+                      <Text style={{ color: Colors.text2, fontSize: FontSize.sm, marginTop: 2 }}>📞 {lot.phone}</Text>
+                    ) : null}
+                    {lot.description ? (
+                      <Text style={{ color: Colors.text3, fontSize: FontSize.xs, marginTop: Spacing.xs }}>{lot.description}</Text>
+                    ) : null}
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1, height: 40, backgroundColor: Colors.green, borderRadius: Radius.sm,
+                      justifyContent: 'center', alignItems: 'center',
+                    }}
+                    onPress={() => handleApprove(lot.id, lot.name)}
+                  >
+                    <Text style={{ color: '#fff', fontSize: FontSize.md, fontWeight: '700' }}>Approuver</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1, height: 40, backgroundColor: Colors.red, borderRadius: Radius.sm,
+                      justifyContent: 'center', alignItems: 'center',
+                    }}
+                    onPress={() => handleReject(lot.id, lot.name)}
+                  >
+                    <Text style={{ color: '#fff', fontSize: FontSize.md, fontWeight: '700' }}>Rejeter</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
 
           {/* ── Quick actions ─────────────────────────────────── */}
           <SectionHeader title="Quick Actions" />
